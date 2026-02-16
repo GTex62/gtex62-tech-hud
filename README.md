@@ -182,7 +182,7 @@ Tip: keep cache directories separated per suite if you run multiple suites:
 
 - **Usage notes**:
   - Theme knobs live in `theme.lua` under the `clock_*` keys.
-  - `clock_bezel_auto=true` uses OWM `timezone_offset` from `$CONKY_CACHE_DIR/owm_forecast.json` (see `config/owm.vars` for cache path).
+  - `clock_bezel_auto=true` uses OWM timezone from cache (forecast or current), falls back to `TZ` in `config/owm.vars`, then `clock_bezel_utc_offset`.
   - Use `conky_core_time` if you want the clock without the marquee.
   - `clock_bezel_r_offset` adjusts the 24h bezel ring radius.
   - `clock_bezel_seg_thick` and `clock_bezel_seg_gap` control 24h bezel segment thickness and spacing.
@@ -239,6 +239,7 @@ Automatic updates: `scripts/run-time.sh` runs the generator once each time the s
   - `weather.icon_set` accepts `owm`, `owm_default`, `owm_color`, `owm_filled`, or `owm_maroon` (folder under `icons/`) or an absolute path.
   - `weather.icon_cache_dir` can be set to a subdir under `$CONKY_CACHE_DIR` (e.g., `icons/gtex62-tech-hud`) or an absolute path to avoid cross-suite icon reuse.
   - `widgets/time.conky.conf` runs the cache/scripts via `execi` entries.
+  - Troubleshooting: forecast tiles need `$CONKY_CACHE_DIR/owm_forecast.json` (from `scripts/owm_fetch.sh`) and `$CONKY_CACHE_DIR/owm_days.vars` (from `scripts/owm_fc_reduce.sh`). If tiles are missing, check `$CONKY_CACHE_DIR/owm_fetch.log`, verify `jq`/`curl` are installed, and confirm `config/owm.env`/`config/owm.vars` plus `CONKY_CACHE_DIR` are set correctly.
   - `weather.vline.color` uses an RGB table; `weather.vline.alpha` controls opacity.
   - Forecast strip is centered on the clock; use `weather.forecast.x_offset` and `weather.forecast.y_offset` to position it.
   - The first forecast tile (today) shows the current temp if it exceeds the forecast high; after the current temp reaches the displayed high and then falls below the observed peak, the high displays as `-` (state persists in `$CONKY_CACHE_DIR/owm_day0_peak.vars` and resets on date change).

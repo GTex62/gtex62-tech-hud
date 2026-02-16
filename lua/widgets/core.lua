@@ -12,45 +12,88 @@ local draw_text_center_fixed = util.draw_text_center_fixed
 local read_file = util.read_file
 local parse_vars_file = util.parse_vars_file
 
-local OWM = { last_read = 0, cache_path = nil, ttl = 300, tz_offset_hours = nil }
+local OWM = { last_read = 0, cache_path = nil, ttl = 300, tz_offset_hours = nil, tz_label = nil, tz_name = nil }
 
-local function get_owm_tz_offset_hours()
-  local now = os.time()
-  if OWM.tz_offset_hours ~= nil and (now - (OWM.last_read or 0)) < (OWM.ttl or 300) then
-    return OWM.tz_offset_hours
+local function read_owm_tz_offset_hours(cache_path)
+  if not cache_path or cache_path == "" then return nil end
+  local j = read_file(cache_path)
+  if not j then return nil end
+
+  -- Extract numeric timezone offset from JSON (seconds east of UTC)
+  local off = j:match([["timezone_offset"%s*:%s*(-?%d+)]])
+  if not off then
+    off = j:match([["timezone"%s*:%s*(-?%d+)]])
   end
+  off = tonumber(off)
+  if not off then return nil end
+  return off / 3600
+end
+
+local function tz_label_from_name(tz_name)
+  if not tz_name or tz_name == "" then return nil end
+  local cmd = string.format("TZ=%q date +%%Z 2>/dev/null", tz_name)
+  local p = io.popen(cmd, "r")
+  if not p then return nil end
+  local out = p:read("*l")
+  p:close()
+  if out and out ~= "" then return out end
+  return nil
+end
+
+local function tz_offset_from_name(tz_name)
+  if not tz_name or tz_name == "" then return nil end
+  local cmd = string.format("TZ=%q date +%%z 2>/dev/null", tz_name)
+  local p = io.popen(cmd, "r")
+  if not p then return nil end
+  local out = p:read("*l")
+  p:close()
+  if not out or out == "" then return nil end
+  local sign, hh, mm = out:match("([+-])(%d%d)(%d%d)")
+  if not sign then return nil end
+  local off = tonumber(hh) + (tonumber(mm) / 60)
+  if sign == "-" then off = -off end
+  return off
+end
+
+local function refresh_owm_tz_cache()
+  local now = os.time()
+  if (now - (OWM.last_read or 0)) < (OWM.ttl or 300) then return end
 
   local vars_path = SUITE_DIR .. "/config/owm.vars"
   local v = parse_vars_file(vars_path)
 
   local ttl = tonumber(v.CACHE_TTL) or 300
   local cache_path = v.OWM_DAILY_CACHE
+  local tz_name = v.TZ
   if not cache_path or cache_path == "" then
     cache_path = CACHE_DIR .. "/owm_forecast.json"
   end
 
   OWM.ttl = ttl
   OWM.cache_path = cache_path
+  OWM.tz_name = tz_name
   OWM.last_read = now
 
-  local j = read_file(cache_path)
-  if not j then
-    OWM.tz_offset_hours = nil
-    return nil
+  local off = read_owm_tz_offset_hours(cache_path)
+  if off == nil then
+    off = read_owm_tz_offset_hours(CACHE_DIR .. "/owm_current.json")
   end
-
-  -- Extract numeric timezone_offset from JSON (seconds east of UTC)
-  local off = j:match([["timezone_offset"%s*:%s*(-?%d+)]])
-  off = tonumber(off)
-  if not off then
-    OWM.tz_offset_hours = nil
-    return nil
+  if off == nil then
+    off = tz_offset_from_name(tz_name)
   end
+  OWM.tz_offset_hours = off
+  OWM.tz_label = tz_label_from_name(tz_name)
+end
 
-  OWM.tz_offset_hours = off / 3600
+local function get_owm_tz_offset_hours()
+  refresh_owm_tz_cache()
   return OWM.tz_offset_hours
 end
 
+local function get_owm_tz_label()
+  refresh_owm_tz_cache()
+  return OWM.tz_label
+end
 
 
 local function polar(cx, cy, radius, angle)
@@ -453,6 +496,9 @@ function conky_core_time()
 
     local tz_label = nil
     if t.clock_bezel_auto == true then
+      tz_label = get_owm_tz_label()
+    end
+    if tz_label == nil and t.clock_bezel_auto == true then
       -- Offset-based labels; extend as needed.
       local tz_map = {
         [-10] = "HST",
