@@ -109,6 +109,7 @@ Note: The script does not install commercial fonts (Eurostile LT Std Ext Two, Eu
 
 ## Quick Start
 
+- Copy the `config/*.example` files to their non-`.example` names (e.g., `config/owm.env`, `config/owm.vars`, `config/lyrics.vars`) and set the values inside.
 - Set `CONKY_SUITE_DIR` and `CONKY_CACHE_DIR` in `scripts/conky-env.sh` (defaults point to the standard locations).
 - Run the suite from `scripts/run-time.sh` or `scripts/start-conky.sh` (they source `conky-env.sh`).
 - Main configs live in `widgets/`.
@@ -233,6 +234,7 @@ Automatic updates: `scripts/run-time.sh` runs the generator once each time the s
 
 - **Usage notes**:
   - Theme knobs live in `theme.lua` under `weather_widget`, `weather`, `horizon_labels`, and `weather_markers`.
+  - The OpenWeather API key is required; create one on the OpenWeather website and set `OWM_API_KEY` in `config/owm.env` (copy from `config/owm.env.example`).
   - The widget uses the icon set from `weather.icon_set` in `theme.lua` (default `icons/owm`) and writes current/forecast icons to `$CONKY_CACHE_DIR/icons` or `weather.icon_cache_dir`.
   - `weather.icon_set` accepts `owm`, `owm_default`, `owm_color`, `owm_filled`, or `owm_maroon` (folder under `icons/`) or an absolute path.
   - `weather.icon_cache_dir` can be set to a subdir under `$CONKY_CACHE_DIR` (e.g., `icons/gtex62-tech-hud`) or an absolute path to avoid cross-suite icon reuse.
