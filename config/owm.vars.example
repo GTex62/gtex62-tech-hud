@@ -1,6 +1,6 @@
 # OpenWeather variables (used by the fetch script)
-LAT=YOUR_LAT        # e.g., 35.111649 (Cordova, TN latitude)
-LON=YOUR_LON        # e.g., -89.755973 (Cordova, TN longitude)
+LAT=YOUR_LAT        # e.g., 41.878100 (Chicago, IL latitude)
+LON=YOUR_LON        # e.g., -87.629800 (Chicago, IL longitude)
 UNITS=imperial      # imperial|metric|standard
 LANG=en             # ISO 639-1 language code
 CACHE_TTL=300       # seconds to reuse cached data
