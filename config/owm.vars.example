@@ -1,0 +1,4 @@
+# Copy to config/owm.vars and adjust for your location.
+CITY_ID=YOUR_CITY_ID
+UNITS=imperial
+LANG=en

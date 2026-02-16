@@ -1,0 +1,17 @@
+/.vscode/
+/bak/
+/design/
+*.swp
+*.tmp
+*.bak
+
+# Secrets
+config/owm.env
+config/owm.vars
+config/lyrics.vars
+config/ap_ipmap.csv
+
+# local/temporary
+*.bak
+*.bak2
+screenshots/.comments/
