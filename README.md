@@ -2,8 +2,6 @@
 
 Conky suite focused on a **central clock** with layered visual elements, a **celestial volvelle ring**, and a bottom HUD for weather + status panels.
 
-This README is structured to match the layout style of **gtex62-clean-suite** (overview → screenshots → features → install/run → customization → deep widget docs).
-
 ## Table of Contents
 
 - [gtex62-tech-hud](#gtex62-tech-hud)
