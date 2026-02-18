@@ -31,6 +31,7 @@ Conky suite focused on a **central clock** with layered visual elements, a **cel
     - [Calendar Ring (Seasons)](#calendar-ring-seasons)
     - [Calendar Marquee (Top Arc)](#calendar-marquee-top-arc)
     - [Font Probe (Eurostile)](#font-probe-eurostile)
+    - [Doctor (Diagnostics)](#doctor-diagnostics)
   - [Troubleshooting](#troubleshooting)
   - [Performance Notes](#performance-notes)
   - [Compatibility](#compatibility)
@@ -524,6 +525,23 @@ Automatic updates: `scripts/run-time.sh` runs the generator once each time the s
 - **Usage notes**:
   - Uses `fc-list | grep -i 'Eurostile'` to build the list.
   - Each line shows the family/style label (left) and a sample rendered in that family (right).
+
+### Doctor (Diagnostics)
+
+- **Purpose**: Diagnostic widget that checks configs, dependencies, cache health, fonts, and SSH wiring.
+- **Dependencies**: `bash` + core utils, `fontconfig` (`fc-list`), `curl`/`jq` for weather checks, `openssh-client` for SSH probe (optional), `playerctl` + `pulseaudio-utils` for music checks.
+- **Config snippet**:
+
+  ```bash
+  conky -c "$CONKY_SUITE_DIR/widgets/doctor.conky.conf"
+  ```
+
+- **Usage notes**:
+  - Sources `scripts/conky-env.sh` to resolve `CONKY_SUITE_DIR` and `CONKY_CACHE_DIR`.
+  - Scans `config/*.example` and flags missing/placeholder values (OWM API key, LAT/LON).
+  - Reads `$CONKY_CACHE_DIR` for expected outputs; missing or empty files are `WARN`.
+  - pfSense probe uses `scripts/pf-ssh-gate.sh` and attempts at most once per `DOCTOR_SSH_TTL` seconds (default `300`).
+  - The doctor does not fetch data; it only validates existing caches and config.
 
 ---
 

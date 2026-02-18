@@ -62,9 +62,11 @@ feh --no-xinerama --bg-fill "$WALLPAPER_PATH"
 # conky -c "$SUITE_DIR/widgets/sitrep.conky.conf" &
 conky -c "$SUITE_DIR/widgets/pfsense-conky.conf" &
 conky -c "$SUITE_DIR/widgets/time.conky.conf" &
+conky -c "$SUITE_DIR/widgets/doctor.conky.conf" &
 conky -c "$SUITE_DIR/widgets/station-model.conky.conf" &
 conky -c "$SUITE_DIR/widgets/system.conky.conf" &
 conky -c "$SUITE_DIR/widgets/network.conky.conf" &
 # conky -c "$SUITE_DIR/widgets/notes.conky.conf" &
 conky -c "$SUITE_DIR/widgets/baro-gauge.conky.conf" &
 conky -c "$SUITE_DIR/widgets/music.conky.conf" &
+# conky -c "$SUITE_DIR/widgets/doctor.conky.conf" &
