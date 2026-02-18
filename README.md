@@ -42,6 +42,7 @@ Conky suite focused on a **central clock** with layered visual elements, a **cel
 
 - Full suite image: `screenshots/gtex62-tech-hud.png` — ![Full suite](screenshots/gtex62-tech-hud.png)
 - SITREP panel widget: `screenshots/sitrep.png` — ![SITREP panel](screenshots/sitrep.png)
+- Doctor widget: `screenshots/doctor.png` — ![Doctor widget](screenshots/doctor.png)
 
 ## Features
 
