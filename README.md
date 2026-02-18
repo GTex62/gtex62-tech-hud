@@ -371,6 +371,7 @@ Automatic updates: `scripts/run-time.sh` runs the generator once each time the s
   - Title styling/position lives under `music.title` (rotated 90° CCW).
   - Left-edge bracket styling/position lives under `music.bracket` (use `flip_v=true` to invert it, `diag_short` for the post-diagonal horizontal run).
   - Lyrics providers and cache paths live in `config/lyrics.vars` (copy from `config/lyrics.vars.example` if needed).
+  - Set `LYRICS_CURL_SILENT=0` to show curl errors from online lyric providers (default is silent).
   - Cover art is cached at `$CONKY_CACHE_DIR/nowplaying_cover.png` with fallback `icons/horn-of-odin.png`. Non-PNG art is converted if `magick`, `convert`, or `ffmpeg` is available.
   - Local lyrics are searched in `LYRICS_LOCAL_DIRS` and cached under `LYRICS_CACHE_DIR` when online fetch is enabled.
   - `widgets/music.conky.conf` uses hard-coded `minimum_width`/`minimum_height` values; adjust those if you want a taller lyrics view.

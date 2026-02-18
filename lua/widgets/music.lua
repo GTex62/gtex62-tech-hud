@@ -384,6 +384,13 @@ local function is_online_enabled()
   return tostring(v) ~= "0"
 end
 
+local function is_lyrics_curl_silent()
+  local vars = load_lyrics_vars()
+  local v = vars.LYRICS_CURL_SILENT
+  if v == nil or v == "" then return true end
+  return tostring(v) ~= "0"
+end
+
 local function get_local_dirs()
   local vars = load_lyrics_vars()
   local list = vars.LYRICS_LOCAL_DIRS or ""
@@ -591,7 +598,11 @@ end
 
 local function fetch_lyrics_ovh(artist, title)
   local url = "https://api.lyrics.ovh/v1/" .. url_encode(artist) .. "/" .. url_encode(title)
-  local json = read_cmd("curl -fsSL --max-time 8 " .. shell_quote(url))
+  local cmd = "curl -fsSL --max-time 8 " .. shell_quote(url)
+  if is_lyrics_curl_silent() then
+    cmd = cmd .. " 2>/dev/null"
+  end
+  local json = read_cmd(cmd)
   if not json or json == "" then return nil end
   local text = json_get_string(json, "lyrics")
   return normalize_lyrics_text(text)
@@ -600,7 +611,11 @@ end
 local function fetch_lrclib(artist, title)
   local url = "https://lrclib.net/api/get?artist_name=" .. url_encode(artist) .. "&track_name=" ..
       url_encode(title)
-  local json = read_cmd("curl -fsSL --max-time 8 " .. shell_quote(url))
+  local cmd = "curl -fsSL --max-time 8 " .. shell_quote(url)
+  if is_lyrics_curl_silent() then
+    cmd = cmd .. " 2>/dev/null"
+  end
+  local json = read_cmd(cmd)
   if not json or json == "" then return nil end
   local synced = normalize_lyrics_text(json_get_string(json, "syncedLyrics"))
   if synced and synced ~= "" then
