@@ -812,7 +812,7 @@ local function draw_wind_barb(cr, cx, cy, data, sm, col, alpha)
   end
 end
 
-local function draw_station_model_impl()
+local function draw_station_model_impl(extra_dx, extra_dy)
   if conky_window == nil then return end
 
   local t = get_theme()
@@ -823,8 +823,10 @@ local function draw_station_model_impl()
   local cs = cairo_xlib_surface_create(conky_window.display, conky_window.drawable, conky_window.visual, w, h)
   local cr = cairo_create(cs)
 
-  local base_cx = (w / 2) + scale(tonumber(sm.center_x_offset) or 0)
-  local base_cy = (h / 2) + scale(tonumber(sm.center_y_offset) or 0)
+  local dx = scale(tonumber(extra_dx) or 0)
+  local dy = scale(tonumber(extra_dy) or 0)
+  local base_cx = (w / 2) + scale(tonumber(sm.center_x_offset) or 0) + dx
+  local base_cy = (h / 2) + scale(tonumber(sm.center_y_offset) or 0) + dy
   local circle = sm.circle or {}
   local circle_outer = sm.circle_outer or {}
   local center_x = base_cx
@@ -874,7 +876,8 @@ local function draw_station_model_impl()
   local value_size = scale(tonumber(sm.value_size) or 20)
   local vis_size = scale(tonumber(sm.vis_size) or 18)
   local tendency_size = scale(tonumber(sm.tendency_size) or 16)
-  local circle_radius = scale(tonumber(circle.radius) or ((tonumber(sm.cloud_size) or 36) * 0.6))
+  local base_radius = tonumber(circle.radius) or ((tonumber(sm.cloud_size) or 36) * 0.6)
+  local circle_radius = scale(base_radius)
   local circle_stroke = scale(tonumber(circle.stroke_width) or 2.0)
 
   local cloud_x = center_x + scale(tonumber(sm.cloud_offset_x) or 0)
@@ -937,8 +940,9 @@ local function draw_station_model_impl()
       end
       if circle_outer.enabled ~= false then
         local outer_stroke = scale(tonumber(circle_outer.stroke_width) or 4.0)
-        local outer_offset = scale(tonumber(circle_outer.radius_offset) or 4)
-        local outer_radius = scale(tonumber(circle_outer.radius) or (radius + outer_offset))
+        local outer_offset = tonumber(circle_outer.radius_offset) or 4
+        local outer_radius = tonumber(circle_outer.radius) or (base_radius + outer_offset)
+        outer_radius = scale(outer_radius)
         local outer_col = circle_outer.stroke_color or { 1.00, 1.00, 1.00 }
         local outer_alpha = tonumber(circle_outer.stroke_alpha) or 0.95
         if outer_stroke > 0 and outer_alpha > 0 then
@@ -1100,9 +1104,22 @@ end
 ---@diagnostic disable-next-line: lowercase-global
 function conky_station_model(key)
   if key ~= "draw" then return "" end
-  local ok, err = pcall(draw_station_model_impl)
+  local ok, err = pcall(draw_station_model_impl, 0, 0)
   if not ok then
     print("station model error: " .. tostring(err))
   end
   return ""
+end
+
+function conky_draw_station_model_embed()
+  local t = get_theme()
+  local emb = t.embedded_corners or {}
+  local cfg = emb.station_model or {}
+  if emb.enabled ~= true then return end
+  if cfg.enabled == false then return end
+  local dx, dy = util.embedded_corner_offset("station_model")
+  local ok, err = pcall(draw_station_model_impl, dx, dy)
+  if not ok then
+    print("station model embed error: " .. tostring(err))
+  end
 end

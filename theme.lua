@@ -27,8 +27,15 @@ local pick_font = theme_core.pick_font
 ----------------------------------------------------------------
 -- Monitor Selection and Suite Scale
 local t = {
-  monitor_head = 0, -- 0 = primary, 1 = secondary
-  scale = 1.00,     -- overall scale
+  monitor_head = 1, -- 0 = primary, 1 = secondary
+  scale = 1.00,     -- draw scale used by util.scale() for widget rendering (text/lines/shapes)
+
+  -- Layout scale vs draw scale:
+  -- - layout.scale drives layout_pos/layout_dim (window positions/sizes).
+  -- - theme.scale drives util.scale() for drawn elements (text/lines/shapes).
+  -- - When layout.tie_draw_scale=true, layout.scale sets theme.scale to keep both in sync.
+  -- - Use scale_mode="auto" to compute layout.scale from CONKY_SCREEN_W/H; use "manual" for a fixed value.
+  -- - If you want positions to change but drawing to stay fixed, set tie_draw_scale=false and adjust theme.scale separately.
 
   -- Layout (positions scale separately from draw scale)
   layout = {
@@ -45,9 +52,9 @@ local t = {
       station_model = { x = 810, y = 865 },
       network = { x = 1542, y = 288 },
       baro_gauge = { x = 1542, y = 865 },
-      notes = { x = 450, y = 380 },
+      notes = { anchor = "clock_center", anchor_point = "top_right", anchor_scale = false, x = -1110, y = -700 },
       doctor = { x = 260, y = 420 },
-      music = { x = 1960, y = 380 },
+      music = { anchor = "clock_center", anchor_point = "top_left", anchor_scale = false, x = 40, y = -700 },
       font_probe = { x = 30, y = 30 },
     },
     inverse_positions = {},
@@ -65,6 +72,16 @@ local t = {
       music = { min_w = 560, max_w = 560, min_h = 1100 },
       font_probe = { min_w = 2400, max_w = 2400, min_h = 1400 },
     },
+  },
+
+  -- Embedded corner widgets (draw inside time widget)
+  embedded_corners = {
+    enabled = true,
+    margin = 0,
+    system = { enabled = true, anchor = "top_left", x = -110, y = 0 },
+    network = { enabled = true, anchor = "top_right", x = 110, y = 0 },
+    station_model = { enabled = true, anchor = "bottom_left", x = -110, y = 0 },
+    baro_gauge = { enabled = true, anchor = "bottom_right", x = 110, y = 0 },
   },
 
   -- Colors
@@ -1453,10 +1470,46 @@ function t.layout_pos(key)
     return math.floor(base * (s ^ k) + 0.5)
   end
   local ref = fit and (fit.ref or {}) or {}
-  return {
-    x = fit_axis(p.x, fit and (fit.x or ref.x) or nil, sx, "x"),
-    y = fit_axis(p.y, fit and (fit.y or ref.y) or nil, sy, "y"),
-  }
+  local anchor_scale = (p.anchor_scale ~= false)
+  local off_x = anchor_scale and fit_axis(p.x, fit and (fit.x or ref.x) or nil, sx, "x")
+      or math.floor((tonumber(p.x) or 0) + 0.5)
+  local off_y = anchor_scale and fit_axis(p.y, fit and (fit.y or ref.y) or nil, sy, "y")
+      or math.floor((tonumber(p.y) or 0) + 0.5)
+
+  if p.anchor == "clock_center" then
+    local base_w = tonumber(L.base_width) or 0
+    local base_h = tonumber(L.base_height) or 0
+    local center_scale = (tostring(L.scale_mode) == "auto") and s or 1.0
+    local cx = (base_w / 2) * center_scale
+    local cy = (base_h / 2) * center_scale
+    local tp = (L.positions or {}).time or {}
+    local tx = math.floor(((tonumber(tp.x) or 0) * s) + 0.5)
+    local ty = math.floor(((tonumber(tp.y) or 0) * s) + 0.5)
+    local ax = math.floor(cx + tx + 0.5)
+    local ay = math.floor(cy + ty + 0.5)
+    local size = (L.sizes or {})[key] or {}
+    local sw = size.min_w or size.max_w
+    local sh = size.min_h or size.max_h
+    local w = sw and math.floor(((tonumber(sw) or 0) * s) + 0.5) or 0
+    local h = sh and math.floor(((tonumber(sh) or 0) * s) + 0.5) or 0
+    local anchor_point = p.anchor_point or "top_left"
+    local x = ax + off_x
+    local y = ay + off_y
+    if anchor_point == "top_right" then
+      x = x - w
+    elseif anchor_point == "bottom_left" then
+      y = y - h
+    elseif anchor_point == "bottom_right" then
+      x = x - w
+      y = y - h
+    elseif anchor_point == "center" then
+      x = x - (w / 2)
+      y = y - (h / 2)
+    end
+    return { x = math.floor(x + 0.5), y = math.floor(y + 0.5) }
+  end
+
+  return { x = off_x, y = off_y }
 end
 
 function t.layout_dim(key, field, fallback)

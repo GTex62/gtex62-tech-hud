@@ -586,13 +586,21 @@ function conky_draw_sitrep()
   local t = get_sitrep_theme()
   local cfg = t.sitrep or {}
 
-  local width = cfg.width or conky_window.width
+  local scale = util.scale
+  local function s(v, fallback)
+    if v == nil then return fallback end
+    local n = tonumber(v)
+    if n == nil then return fallback end
+    return scale(n)
+  end
+
+  local width = s(cfg.width, conky_window.width)
   local height = conky_window.height
-  local line_h = cfg.line_h or 20
+  local line_h = s(cfg.line_h, scale(20))
   local pad = math.floor(line_h * 0.6)
 
-  local title_size = cfg.title_size or 24
-  local text_size = cfg.text_size or 16
+  local title_size = s(cfg.title_size, scale(24))
+  local text_size = s(cfg.text_size, scale(16))
 
   local title_font = cfg.title_font
   if not title_font or title_font == "auto" then
@@ -624,8 +632,8 @@ function conky_draw_sitrep()
   local hr_cfg = cfg.hr or {}
   local hr_color = hr_cfg.color or (t.palette and t.palette.accent and t.palette.accent.maroon) or { 0.40, 0.08, 0.12 }
   local hr_alpha = tonumber(hr_cfg.alpha) or 0.85
-  local hr_stroke = tonumber(hr_cfg.stroke) or 2.0
-  local hr_len = tonumber(hr_cfg.length) or (width - (pad * 2))
+  local hr_stroke = s(hr_cfg.stroke, scale(2.0))
+  local hr_len = (hr_cfg.length ~= nil) and s(hr_cfg.length, 0) or (width - (pad * 2))
 
   local cs = cairo_xlib_surface_create(conky_window.display,
     conky_window.drawable,
@@ -644,11 +652,11 @@ function conky_draw_sitrep()
 
   local panel = cfg.panel or {}
   if panel.enabled ~= false then
-    local pad_x = tonumber(panel.padding_x) or 0
-    local pad_y = tonumber(panel.padding_y) or 0
+    local pad_x = s(panel.padding_x, 0)
+    local pad_y = s(panel.padding_y, 0)
 
-    local x0 = tonumber(panel.offset_x) or 0
-    local y0 = tonumber(panel.offset_y) or 0
+    local x0 = s(panel.offset_x, 0)
+    local y0 = s(panel.offset_y, 0)
     local pw = panel.width
     local ph = panel.height
 
@@ -660,9 +668,11 @@ function conky_draw_sitrep()
       y0 = y0 + pad_y
       ph = conky_window.height - (pad_y * 2)
     end
+    if pw ~= nil then pw = s(pw, 0) end
+    if ph ~= nil then ph = s(ph, 0) end
 
     if pw > 0 and ph > 0 then
-      local radius = tonumber(panel.radius) or 0
+      local radius = s(panel.radius, 0)
       local fill_col = panel.fill_color or { 0.30, 0.30, 0.30 }
       if panel.season_tint_enable == true then
         local season_tints = {
@@ -681,7 +691,7 @@ function conky_draw_sitrep()
       local fill_alpha = tonumber(panel.fill_alpha) or 0
       local stroke_col = panel.stroke_color or { 1, 1, 1 }
       local stroke_alpha = tonumber(panel.stroke_alpha) or 0
-      local stroke_width = tonumber(panel.stroke_width) or 0
+      local stroke_width = s(panel.stroke_width, 0)
 
       if fill_alpha > 0 then
         util.set_rgba(cr, fill_col, fill_alpha)
@@ -697,8 +707,8 @@ function conky_draw_sitrep()
 
       local outer = panel.outer_stroke or {}
       if outer.enabled ~= false then
-        local outer_offset = tonumber(outer.offset) or 0
-        local outer_width = tonumber(outer.width) or stroke_width
+        local outer_offset = s(outer.offset, 0)
+        local outer_width = s(outer.width, stroke_width)
         local outer_color = outer.color or stroke_col
         local outer_alpha = tonumber(outer.alpha) or stroke_alpha
 
@@ -718,8 +728,8 @@ function conky_draw_sitrep()
     end
   end
 
-  local content_offset_x = tonumber(cfg.content_offset_x) or 0
-  local content_offset_y = tonumber(cfg.content_offset_y) or 0
+  local content_offset_x = s(cfg.content_offset_x, 0)
+  local content_offset_y = s(cfg.content_offset_y, 0)
   local did_translate = false
   if content_offset_x ~= 0 or content_offset_y ~= 0 then
     cairo_save(cr)
@@ -728,8 +738,8 @@ function conky_draw_sitrep()
   end
 
   local title_text = cfg.title_text or "SITREP"
-  local title_x = tonumber(cfg.title_x) or pad
-  local title_y = tonumber(cfg.title_y) or (pad + title_size)
+  local title_x = s(cfg.title_x, pad)
+  local title_y = s(cfg.title_y, (pad + title_size))
   local content_right = width - pad
   if content_right < pad + 80 then content_right = pad + 80 end
   local hr_right_limit = conky_window.width - pad
@@ -767,11 +777,11 @@ function conky_draw_sitrep()
           gw_color = (t.colors and t.colors.bad) or value_color
         end
       end
-      local gw_size = tonumber(gw_cfg.size) or title_size
+      local gw_size = s(gw_cfg.size, title_size)
       local gw_alpha = tonumber(gw_cfg.alpha) or (gw_color[4] or title_alpha)
       local gw_weight = (gw_cfg.weight == "bold") and CAIRO_FONT_WEIGHT_BOLD or CAIRO_FONT_WEIGHT_NORMAL
-      local gw_dx = tonumber(gw_cfg.dx) or 0
-      local gw_dy = tonumber(gw_cfg.dy) or 0
+      local gw_dx = s(gw_cfg.dx, 0)
+      local gw_dy = s(gw_cfg.dy, 0)
       local hr_end_x = pad + hr_len
       if hr_end_x > hr_right_limit then hr_end_x = hr_right_limit end
       util.set_rgba(cr, gw_color, gw_alpha)
@@ -817,19 +827,19 @@ function conky_draw_sitrep()
     local m = cfg.meters or {}
     if m.enabled == false then return end
 
-    local x0 = tonumber(m.x) or 0
-    local y0 = tonumber(m.y) or 0
-    local w = tonumber(m.width) or 60
-    local h = tonumber(m.height) or 160
-    local radius = tonumber(m.radius) or 0
-    local pad_top = tonumber(m.pad_top) or 0
-    local pad_bottom = tonumber(m.pad_bottom) or 0
+    local x0 = s(m.x, 0)
+    local y0 = s(m.y, 0)
+    local w = s(m.width, scale(60))
+    local h = s(m.height, scale(160))
+    local radius = s(m.radius, 0)
+    local pad_top = s(m.pad_top, 0)
+    local pad_bottom = s(m.pad_bottom, 0)
 
     local bg_color = m.bg_color or { 0, 0, 0 }
     local bg_alpha = tonumber(m.bg_alpha) or 0
 
-    local bar_w = tonumber(m.bar_width) or 6
-    local bar_gap = tonumber(m.bar_gap) or 6
+    local bar_w = s(m.bar_width, scale(6))
+    local bar_gap = s(m.bar_gap, scale(6))
     local bar_alpha = tonumber(m.bar_alpha) or 1
     local bar_colors = m.bar_colors or {}
 
@@ -837,10 +847,10 @@ function conky_draw_sitrep()
     if not label_font or label_font == "auto" then
       label_font = title_font
     end
-    local label_size = tonumber(m.label_size) or 12
+    local label_size = s(m.label_size, scale(12))
     local label_color = m.label_color or { 0.30, 0.30, 0.30 }
     local label_alpha = tonumber(m.label_alpha) or 0.70
-    local label_offset = tonumber(m.label_offset) or 8
+    local label_offset = s(m.label_offset, scale(8))
 
     local labels = m.labels or { "VRM", "GPU", "RAM", "CPU" }
     local values = { m.value_vrm, m.value_gpu, m.value_ram, m.value_cpu }
@@ -889,20 +899,20 @@ function conky_draw_sitrep()
     local m = cfg.pfsense_meters or {}
     if m.enabled == false then return end
 
-    local x0 = tonumber(m.x) or 0
-    local y0 = tonumber(y_override) or tonumber(m.y) or 0
-    local w = tonumber(m.width) or 0
-    local h = tonumber(m.height) or 0
-    local radius = tonumber(m.radius) or 0
-    local pad_top = tonumber(m.pad_top) or 0
-    local pad_bottom = tonumber(m.pad_bottom) or 0
+    local x0 = s(m.x, 0)
+    local y0 = s(y_override, s(m.y, 0))
+    local w = s(m.width, 0)
+    local h = s(m.height, 0)
+    local radius = s(m.radius, 0)
+    local pad_top = s(m.pad_top, 0)
+    local pad_bottom = s(m.pad_bottom, 0)
 
     local bg_color = m.bg_color or { 0, 0, 0 }
     local bg_alpha = tonumber(m.bg_alpha) or 0
 
-    local bar_w = tonumber(m.bar_width) or 6
-    local bar_gap = tonumber(m.bar_gap) or 6
-    local group_gap = tonumber(m.group_gap) or 12
+    local bar_w = s(m.bar_width, scale(6))
+    local bar_gap = s(m.bar_gap, scale(6))
+    local group_gap = s(m.group_gap, scale(12))
     local bar_alpha = tonumber(m.bar_alpha) or 1
     local down_color = m.down_color or { 0.7, 0.7, 0.7 }
     local up_color = m.up_color or { 0.3, 0.3, 0.3 }
@@ -911,10 +921,10 @@ function conky_draw_sitrep()
     if not label_font or label_font == "auto" then
       label_font = title_font
     end
-    local label_size = tonumber(m.label_size) or text_size
+    local label_size = s(m.label_size, text_size)
     local label_color = m.label_color or label_color
     local label_alpha = tonumber(m.label_alpha) or 0.7
-    local label_offset = tonumber(m.label_offset) or 8
+    local label_offset = s(m.label_offset, scale(8))
 
     local rates = nil
     if type(conky_pf_rates) == "function" then
@@ -985,19 +995,19 @@ function conky_draw_sitrep()
     local TT = (t.pf and t.pf.totals_table) or {}
     if TT.enabled == false then return end
     local font = TT.font or (t.fonts and t.fonts.mono) or "DejaVu Sans Mono"
-    local size_h = tonumber(TT.size_header) or 14
-    local size_b = tonumber(TT.size_body) or 13
+    local size_h = s(TT.size_header, scale(14))
+    local size_b = s(TT.size_body, scale(13))
     local col_h = TT.color_header or { 0.85, 0.85, 0.85, 1.0 }
     local col_l = TT.color_label or { 0.85, 0.85, 0.85, 1.0 }
     local col_v = TT.color_value or { 0.95, 0.97, 0.99, 1.0 }
 
-    local label_w = tonumber(TT.label_col_w) or 120
-    local data_w = tonumber(TT.data_col_w) or 110
-    local head_h = tonumber(TT.header_h) or 20
-    local row_h = tonumber(TT.row_h) or 18
-    local row_gap = tonumber(TT.row_gap) or 6
-    local dx = tonumber(TT.dx) or 0
-    local dy = tonumber(TT.dy) or 0
+    local label_w = s(TT.label_col_w, scale(120))
+    local data_w = s(TT.data_col_w, scale(110))
+    local head_h = s(TT.header_h, scale(20))
+    local row_h = s(TT.row_h, scale(18))
+    local row_gap = s(TT.row_gap, scale(6))
+    local dx = s(TT.dx, 0)
+    local dy = s(TT.dy, 0)
 
     local headers = TT.headers or { "WAN", "HOME", "IoT", "GUEST", "INFRA", "CAM" }
     local row_labels = TT.row_labels or { ["in"] = "Bytes In", ["out"] = "Bytes Out" }
@@ -1075,13 +1085,13 @@ function conky_draw_sitrep()
     local SB = (t.pf and t.pf.status_block) or {}
     if SB.enabled == false then return end
     local font = SB.font or (t.fonts and t.fonts.regular) or "DejaVu Sans"
-    local size = tonumber(SB.size) or 14
+    local size = s(SB.size, scale(14))
     local col_l = SB.label_color or { 0.85, 0.85, 0.85, 1.0 }
     local col_v = SB.value_color or { 0.95, 0.97, 0.99, 1.0 }
     local field_sep = SB.field_sep or " | "
-    local dx = tonumber(SB.dx) or 0
-    local dy = tonumber(SB.dy) or 0
-    local line_gap = tonumber(SB.line_gap) or 18
+    local dx = s(SB.dx, 0)
+    local dy = s(SB.dy, 0)
+    local line_gap = s(SB.line_gap, scale(18))
 
     local D = get_pf_data() or {}
     local pfb_cfg = SB.pfb or {}
@@ -1199,19 +1209,19 @@ function conky_draw_sitrep()
   end
 
   -- Header HR
-  draw_hr_at(hr_cfg.header_line_y)
+  draw_hr_at(s(hr_cfg.header_line_y, nil))
 
   -- AP block
   local ap_cfg = cfg.ap or {}
   local ap_enabled = ap_cfg.enabled ~= false
   if ap_enabled then
-    draw_hr_at(hr_cfg.ap_line_y)
+    draw_hr_at(s(hr_cfg.ap_line_y, nil))
   end
   local ap_font = ap_cfg.font
   if not ap_font or ap_font == "auto" then
     ap_font = title_font
   end
-  local ap_size = tonumber(ap_cfg.size) or text_size
+  local ap_size = s(ap_cfg.size, text_size)
   local ap_color = ap_cfg.color or value_color
   local ap_alpha = tonumber(ap_cfg.alpha) or value_alpha
   local ap_name_color = ap_cfg.name_color or ap_color
@@ -1220,19 +1230,19 @@ function conky_draw_sitrep()
   if not ap_device_font or ap_device_font == "auto" then
     ap_device_font = text_font
   end
-  local ap_device_size = tonumber(ap_cfg.device_size) or text_size
+  local ap_device_size = s(ap_cfg.device_size, text_size)
   local ap_device_color = ap_cfg.device_color or ap_color
   local ap_device_alpha = tonumber(ap_cfg.device_alpha) or ap_alpha
-  local ap_device_line_h = tonumber(ap_cfg.device_line_h) or line_h
+  local ap_device_line_h = s(ap_cfg.device_line_h, line_h)
   local unk_value_color = ap_cfg.unk_value_color or (t.palette and t.palette.accent and t.palette.accent.maroon) or { 0.40, 0.08, 0.12 }
   local unk_value_alpha = tonumber(ap_cfg.unk_value_alpha) or ap_alpha
   local unk_ip_color = ap_cfg.unk_ip_color or unk_value_color
   local unk_ip_alpha = tonumber(ap_cfg.unk_ip_alpha) or ap_device_alpha
-  local ap_device_max_w = tonumber(ap_cfg.device_max_w) or (content_right - pad)
-  local ap_device_center_x = tonumber(ap_cfg.device_center_x) or (pad + ((content_right - pad) / 2))
+  local ap_device_max_w = s(ap_cfg.device_max_w, (content_right - pad))
+  local ap_device_center_x = s(ap_cfg.device_center_x, (pad + ((content_right - pad) / 2)))
   local ap_device_align = tostring(ap_cfg.device_align or "center"):lower()
-  local ap_device_left_x = tonumber(ap_cfg.device_left_x) or pad
-  local ap_value_x = tonumber(ap_cfg.value_x) or content_right
+  local ap_device_left_x = s(ap_cfg.device_left_x, pad)
+  local ap_value_x = s(ap_cfg.value_x, content_right)
 
   if ap_enabled then
     y = y + (line_h * 3)
@@ -1336,16 +1346,16 @@ function conky_draw_sitrep()
   if pf_enabled then
     y = y + (line_h * 3)
     local pf_flow_base = y
-    local pf_hr_y = hr_cfg.pfsense_line_y
+    local pf_hr_y = s(hr_cfg.pfsense_line_y, nil)
     if hr_cfg.pfsense_line_follow then
-      pf_hr_y = pf_flow_base + (tonumber(hr_cfg.pfsense_line_offset) or 0)
+      pf_hr_y = pf_flow_base + s(hr_cfg.pfsense_line_offset, 0)
     end
     draw_hr_at(pf_hr_y)
     if hr_cfg.pfsense_line_follow then
       y = pf_hr_y + line_h
     end
     if pf_cfg.follow_flow == false then
-      y = tonumber(pf_cfg.text_y) or (pf_hr_y + line_h)
+      y = s(pf_cfg.text_y, (pf_hr_y + line_h))
     end
 
     -- pfSense block
@@ -1365,8 +1375,8 @@ function conky_draw_sitrep()
         pf_bios = b:match("%d+%.%d+%.%d+") or b:match("%d+%.%d+") or b
       end
     end
-    local pf_center_x = tonumber(pf_cfg.text_center_x) or (pad + ((content_right - pad) / 2))
-    local pf_center_off = tonumber(pf_cfg.text_center_offset_x) or 0
+    local pf_center_x = s(pf_cfg.text_center_x, (pad + ((content_right - pad) / 2)))
+    local pf_center_off = s(pf_cfg.text_center_offset_x, 0)
     local function draw_centered_segments(segments, y_pos)
       local total_w = 0
       for _, seg in ipairs(segments) do
@@ -1441,7 +1451,7 @@ function conky_draw_sitrep()
   cairo_surface_destroy(cs)
 end
 
-function conky_draw_system()
+local function draw_system_impl(extra_dx, extra_dy)
   if conky_window == nil then return end
   local t = util.get_theme()
   local sys = t.system or {}
@@ -1452,15 +1462,18 @@ function conky_draw_system()
   local cr = cairo_create(cs)
 
   local scale = util.scale
-  local base_cx = (w / 2) + scale(tonumber(sys.center_x_offset) or 0)
-  local base_cy = (h / 2) + scale(tonumber(sys.center_y_offset) or 0)
+  local dx = scale(tonumber(extra_dx) or 0)
+  local dy = scale(tonumber(extra_dy) or 0)
+  local base_cx = (w / 2) + scale(tonumber(sys.center_x_offset) or 0) + dx
+  local base_cy = (h / 2) + scale(tonumber(sys.center_y_offset) or 0) + dy
   local circle = sys.circle or {}
   local circle_outer = sys.circle_outer or {}
   local center_x = base_cx
   local center_y = base_cy + scale(tonumber(circle.offset_y) or 0)
 
   if circle.enabled ~= false then
-    local radius = scale(tonumber(circle.radius) or 115)
+    local base_radius = tonumber(circle.radius) or 115
+    local radius = scale(base_radius)
     local stroke = scale(tonumber(circle.stroke_width) or 4.0)
     local fill_col = circle.fill_color or { 0.30, 0.30, 0.30 }
     if circle.season_tint_enable == true then
@@ -1494,8 +1507,9 @@ function conky_draw_system()
     end
     if circle_outer.enabled ~= false then
       local outer_stroke = scale(tonumber(circle_outer.stroke_width) or 8.0)
-      local outer_offset = scale(tonumber(circle_outer.radius_offset) or 10)
-      local outer_radius = scale(tonumber(circle_outer.radius) or (radius + outer_offset))
+      local outer_offset = tonumber(circle_outer.radius_offset) or 10
+      local outer_radius = tonumber(circle_outer.radius) or (base_radius + outer_offset)
+      outer_radius = scale(outer_radius)
       local outer_col = circle_outer.stroke_color or { 1.00, 1.00, 1.00 }
       local outer_alpha = tonumber(circle_outer.stroke_alpha) or 0.30
       if outer_stroke > 0 and outer_alpha > 0 then
@@ -1649,7 +1663,8 @@ function conky_draw_system()
   local meters = sys.meters or {}
   if meters.enabled ~= false then
     local circle = sys.circle or {}
-    local radius = scale(tonumber(circle.radius) or 115)
+    local base_radius = tonumber(circle.radius) or 115
+    local radius = scale(base_radius)
     local meter_radius = radius + scale(tonumber(meters.radius_offset) or 0)
     local meter_width = scale(tonumber(meters.stroke_width) or 6)
     local meter_alpha = tonumber(meters.alpha) or 0.9
@@ -1715,7 +1730,8 @@ function conky_draw_system()
 
   local ticks = sys.ticks or {}
   if ticks.enabled ~= false then
-    local radius = scale(tonumber(circle.radius) or 115)
+    local base_radius = tonumber(circle.radius) or 115
+    local radius = scale(base_radius)
     local len = scale(tonumber(ticks.length) or 12)
     local width = scale(tonumber(ticks.width) or 3)
     local offset = scale(tonumber(ticks.offset) or 4)
@@ -1741,7 +1757,21 @@ function conky_draw_system()
   cairo_surface_destroy(cs)
 end
 
-function conky_draw_network()
+function conky_draw_system()
+  draw_system_impl(0, 0)
+end
+
+function conky_draw_system_embed()
+  local t = util.get_theme()
+  local emb = t.embedded_corners or {}
+  local cfg = emb.system or {}
+  if emb.enabled ~= true then return end
+  if cfg.enabled == false then return end
+  local dx, dy = util.embedded_corner_offset("system")
+  draw_system_impl(dx, dy)
+end
+
+local function draw_network_impl(extra_dx, extra_dy)
   if conky_window == nil then return end
   local t = util.get_theme()
   local net = t.network or {}
@@ -1752,15 +1782,18 @@ function conky_draw_network()
   local cr = cairo_create(cs)
 
   local scale = util.scale
-  local base_cx = (w / 2) + scale(tonumber(net.center_x_offset) or 0)
-  local base_cy = (h / 2) + scale(tonumber(net.center_y_offset) or 0)
+  local dx = scale(tonumber(extra_dx) or 0)
+  local dy = scale(tonumber(extra_dy) or 0)
+  local base_cx = (w / 2) + scale(tonumber(net.center_x_offset) or 0) + dx
+  local base_cy = (h / 2) + scale(tonumber(net.center_y_offset) or 0) + dy
   local circle = net.circle or {}
   local circle_outer = net.circle_outer or {}
   local center_x = base_cx
   local center_y = base_cy + scale(tonumber(circle.offset_y) or 0)
 
   if circle.enabled ~= false then
-    local radius = scale(tonumber(circle.radius) or 115)
+    local base_radius = tonumber(circle.radius) or 115
+    local radius = scale(base_radius)
     local stroke = scale(tonumber(circle.stroke_width) or 4.0)
     local fill_col = circle.fill_color or { 0.30, 0.30, 0.30 }
     if circle.season_tint_enable == true then
@@ -1794,8 +1827,9 @@ function conky_draw_network()
     end
     if circle_outer.enabled ~= false then
       local outer_stroke = scale(tonumber(circle_outer.stroke_width) or 8.0)
-      local outer_offset = scale(tonumber(circle_outer.radius_offset) or 10)
-      local outer_radius = scale(tonumber(circle_outer.radius) or (radius + outer_offset))
+      local outer_offset = tonumber(circle_outer.radius_offset) or 10
+      local outer_radius = tonumber(circle_outer.radius) or (base_radius + outer_offset)
+      outer_radius = scale(outer_radius)
       local outer_col = circle_outer.stroke_color or { 1.00, 1.00, 1.00 }
       local outer_alpha = tonumber(circle_outer.stroke_alpha) or 0.30
       if outer_stroke > 0 and outer_alpha > 0 then
@@ -1995,4 +2029,18 @@ function conky_draw_network()
 
   cairo_destroy(cr)
   cairo_surface_destroy(cs)
+end
+
+function conky_draw_network()
+  draw_network_impl(0, 0)
+end
+
+function conky_draw_network_embed()
+  local t = util.get_theme()
+  local emb = t.embedded_corners or {}
+  local cfg = emb.network or {}
+  if emb.enabled ~= true then return end
+  if cfg.enabled == false then return end
+  local dx, dy = util.embedded_corner_offset("network")
+  draw_network_impl(dx, dy)
 end

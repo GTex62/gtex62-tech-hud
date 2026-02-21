@@ -28,6 +28,49 @@ local function scale(v)
   return v * s
 end
 
+local function layout_base_size(t, key, field, fallback)
+  local L = t.layout or {}
+  local size = (L.sizes or {})[key] or {}
+  local v = size[field]
+  if v == nil then v = fallback end
+  return tonumber(v)
+end
+
+local function embedded_corner_offset(key)
+  local t = get_theme()
+  local emb = t.embedded_corners or {}
+  local cfg = emb[key] or {}
+  local anchor = cfg.anchor or emb.anchor
+  local dx = tonumber(cfg.x) or 0
+  local dy = tonumber(cfg.y) or 0
+  if not anchor then
+    return dx, dy
+  end
+
+  local time_w = layout_base_size(t, "time", "min_w", 1200) or 1200
+  local time_h = layout_base_size(t, "time", "min_h", 1200) or 1200
+  local w = layout_base_size(t, key, "min_w", 400) or 400
+  local h = layout_base_size(t, key, "min_h", 400) or 400
+  local mx = tonumber(cfg.margin_x or cfg.margin or emb.margin_x or emb.margin) or 0
+  local my = tonumber(cfg.margin_y or cfg.margin or emb.margin_y or emb.margin) or 0
+  local half_w = (time_w / 2) - (w / 2) - mx
+  local half_h = (time_h / 2) - (h / 2) - my
+  local ax = 0
+  local ay = 0
+
+  if anchor == "top_left" then
+    ax, ay = -half_w, -half_h
+  elseif anchor == "top_right" then
+    ax, ay = half_w, -half_h
+  elseif anchor == "bottom_left" then
+    ax, ay = -half_w, half_h
+  elseif anchor == "bottom_right" then
+    ax, ay = half_w, half_h
+  end
+
+  return ax + dx, ay + dy
+end
+
 local function font_profile_for(font_face)
   if type(font_face) ~= "string" then return nil end
   local family = font_face
@@ -286,6 +329,7 @@ M.read_file = read_file
 M.parse_vars_file = parse_vars_file
 M.draw_png_centered = draw_png_centered
 M.expand_vars = expand_vars
+M.embedded_corner_offset = embedded_corner_offset
 M.suite_dir = SUITE_DIR
 M.cache_dir = CACHE_DIR
 

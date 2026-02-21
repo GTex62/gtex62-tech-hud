@@ -10,12 +10,20 @@ local HOME = os.getenv("HOME") or ""
 local SUITE_DIR = os.getenv("CONKY_SUITE_DIR") or (HOME .. "/.config/conky/gtex62-tech-hud")
 local CACHE_DIR = os.getenv("CONKY_CACHE_DIR") or ((os.getenv("XDG_CACHE_HOME") or (HOME .. "/.cache")) .. "/conky")
 local util = dofile(SUITE_DIR .. "/lua/lib/util.lua")
+local scale = util.scale
 
 pcall(require, "cairo")
 
 local function pick(v, fallback)
   if v ~= nil then return v end
   return fallback
+end
+
+local function s(v, fallback)
+  if v == nil then return fallback end
+  local n = tonumber(v)
+  if n == nil then return fallback end
+  return scale(n)
 end
 
 local function draw_round_rect(cr, x, y, w, h, r)
@@ -127,23 +135,23 @@ local function draw_notes_bracket(cr, theme, notes, x0, y0, pw, ph)
   local b = notes.bracket or {}
   if b.enabled == false then return end
 
-  local bx = x0 + (tonumber(b.x) or 0)
-  local by = y0 + (tonumber(b.y) or 0)
+  local bx = x0 + s(b.x, 0)
+  local by = y0 + s(b.y, 0)
   local flip_h = b.flip_h == true
   local flip_v = b.flip_v == true
   local dir_x = flip_h and -1 or 1
   local dir_y = flip_v and -1 or 1
-  local short = (tonumber(b.short) or 0) * dir_y
-  local diag_dx = (tonumber(b.diag_dx) or 0) * dir_x
-  local diag_dy = (tonumber(b.diag_dy) or 0) * dir_y
+  local short = s(b.short, 0) * dir_y
+  local diag_dx = s(b.diag_dx, 0) * dir_x
+  local diag_dy = s(b.diag_dy, 0) * dir_y
   local diag_scale = tonumber(b.diag_scale) or 1.0
-  local diag_short = (tonumber(b.diag_short) or 0) * dir_x
-  local long_len_cfg = tonumber(b.long_len) or 0
-  local vert = (tonumber(b.vert) or 0) * dir_x
-  local width = tonumber(b.width) or 2.0
+  local diag_short = s(b.diag_short, 0) * dir_x
+  local long_len_cfg = s(b.long_len, 0)
+  local vert = s(b.vert, 0) * dir_x
+  local width = s(b.width, scale(2.0))
   local alpha = tonumber(b.alpha) or 0.30
   local color = b.color or (theme.palette and theme.palette.white) or { 1.00, 1.00, 1.00 }
-  local bottom_pad = tonumber(b.bottom_pad) or 0
+  local bottom_pad = s(b.bottom_pad, 0)
 
   local dx = diag_dx * diag_scale
   local dy = diag_dy * diag_scale
@@ -186,11 +194,11 @@ local function draw_notes_title(cr, theme, notes, x0, y0, pw, ph)
   if font == nil or font == "" or font == "auto" then
     font = (theme.fonts and theme.fonts.title) or "Sans"
   end
-  local size = tonumber(tcfg.size) or 24
+  local size = s(tcfg.size, scale(24))
   local alpha = tonumber(tcfg.alpha) or 0.75
   local color = tcfg.color or (theme.palette and theme.palette.black) or { 0.00, 0.00, 0.00 }
-  local x = x0 + (tonumber(tcfg.x) or 0)
-  local y = y0 + (tonumber(tcfg.y) or (ph / 2))
+  local x = x0 + s(tcfg.x, 0)
+  local y = y0 + s(tcfg.y, (ph / 2))
   local rot = tonumber(tcfg.rot_deg) or 180
 
   util.draw_text_center_rotated(cr, x, y, text, font, size, color, alpha, math.rad(rot))
@@ -212,11 +220,11 @@ function conky_draw_notes_panel()
   local net = (theme.network and theme.network.circle) or {}
   local net_outer = (theme.network and theme.network.circle_outer) or {}
 
-  local pad_x = pick(panel.padding_x, 10)
-  local pad_y = pick(panel.padding_y, 8)
+  local pad_x = s(panel.padding_x, scale(10))
+  local pad_y = s(panel.padding_y, scale(8))
 
-  local x0 = pick(panel.offset_x, 0)
-  local y0 = pick(panel.offset_y, 0)
+  local x0 = s(panel.offset_x, 0)
+  local y0 = s(panel.offset_y, 0)
   local pw = panel.width
   local ph = panel.height
 
@@ -228,10 +236,12 @@ function conky_draw_notes_panel()
     y0 = y0 + pad_y
     ph = h - (pad_y * 2)
   end
+  if pw ~= nil then pw = s(pw, 0) end
+  if ph ~= nil then ph = s(ph, 0) end
 
   if pw <= 0 or ph <= 0 then return end
 
-  local radius = pick(panel.radius, 12)
+  local radius = s(panel.radius, scale(12))
   local fill_color = panel.fill_color or sys.fill_color or net.fill_color or { 0.30, 0.30, 0.30 }
   local fill_alpha = pick(panel.fill_alpha, sys.fill_alpha or net.fill_alpha or 0.65)
   if panel.season_tint_enable == true then
@@ -255,7 +265,7 @@ function conky_draw_notes_panel()
     or net.stroke_color
     or { 1.00, 1.00, 1.00 }
   local stroke_alpha = pick(panel.stroke_alpha, sys_outer.stroke_alpha or net_outer.stroke_alpha or sys.stroke_alpha or net.stroke_alpha or 0.30)
-  local stroke_width = pick(panel.stroke_width, 2.0)
+  local stroke_width = s(panel.stroke_width, scale(2.0))
   local outer = panel.outer_stroke or {}
 
   local cs = cairo_xlib_surface_create(conky_window.display, conky_window.drawable, conky_window.visual, w, h)
@@ -270,8 +280,8 @@ function conky_draw_notes_panel()
     cairo_stroke(cr)
 
     if outer.enabled ~= false then
-      local outer_offset = pick(outer.offset, 4)
-      local outer_width = pick(outer.width, stroke_width)
+      local outer_offset = s(outer.offset, scale(4))
+      local outer_width = s(outer.width, stroke_width)
       local outer_color = outer.color or sys_outer.stroke_color or net_outer.stroke_color or stroke_color
       local outer_alpha = pick(outer.alpha, sys_outer.stroke_alpha or net_outer.stroke_alpha or stroke_alpha)
 

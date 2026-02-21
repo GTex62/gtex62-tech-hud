@@ -11,12 +11,20 @@ local HOME = os.getenv("HOME") or ""
 local SUITE_DIR = os.getenv("CONKY_SUITE_DIR") or (HOME .. "/.config/conky/gtex62-tech-hud")
 local CACHE_DIR = os.getenv("CONKY_CACHE_DIR") or ((os.getenv("XDG_CACHE_HOME") or (HOME .. "/.cache")) .. "/conky")
 local util = dofile(SUITE_DIR .. "/lua/lib/util.lua")
+local scale = util.scale
 
 local has_cairo = pcall(require, "cairo")
 
 local function pick(v, fallback)
   if v ~= nil then return v end
   return fallback
+end
+
+local function s(v, fallback)
+  if v == nil then return fallback end
+  local n = tonumber(v)
+  if n == nil then return fallback end
+  return scale(n)
 end
 
 local function clamp(v, lo, hi)
@@ -742,21 +750,25 @@ function conky_music_visible()
 end
 
 local function resolve_panel_geometry(w, h, panel)
-  local pad_x = pick(panel.padding_x, 10)
-  local pad_y = pick(panel.padding_y, 8)
+  local pad_x = s(panel.padding_x, scale(10))
+  local pad_y = s(panel.padding_y, scale(8))
 
-  local x0 = pick(panel.offset_x, 0)
-  local y0 = pick(panel.offset_y, 0)
+  local x0 = s(panel.offset_x, 0)
+  local y0 = s(panel.offset_y, 0)
   local pw = panel.width
   local ph = panel.height
 
   if pw == nil then
     x0 = x0 + pad_x
     pw = w - (pad_x * 2)
+  else
+    pw = s(pw, 0)
   end
   if ph == nil then
     y0 = y0 + pad_y
     ph = h - (pad_y * 2)
+  else
+    ph = s(ph, 0)
   end
 
   return x0, y0, pw, ph
@@ -770,7 +782,7 @@ local function draw_panel(cr, w, h, theme, panel)
   local x0, y0, pw, ph = resolve_panel_geometry(w, h, panel)
   if pw <= 0 or ph <= 0 then return 0, 0, w, h end
 
-  local radius = pick(panel.radius, 12)
+  local radius = s(panel.radius, scale(12))
   local fill_color = panel.fill_color or { 0.30, 0.30, 0.30 }
   local fill_alpha = pick(panel.fill_alpha, 0.45)
   if panel.season_tint_enable == true then
@@ -790,7 +802,7 @@ local function draw_panel(cr, w, h, theme, panel)
 
   local stroke_color = panel.stroke_color or { 1.00, 1.00, 1.00 }
   local stroke_alpha = pick(panel.stroke_alpha, 0.30)
-  local stroke_width = pick(panel.stroke_width, 2.0)
+  local stroke_width = s(panel.stroke_width, scale(2.0))
   local outer = panel.outer_stroke or {}
 
   draw_round_rect(cr, x0, y0, pw, ph, radius)
@@ -801,8 +813,8 @@ local function draw_panel(cr, w, h, theme, panel)
   cairo_stroke(cr)
 
   if outer.enabled ~= false then
-    local outer_offset = pick(outer.offset, 4)
-    local outer_width = pick(outer.width, stroke_width)
+    local outer_offset = s(outer.offset, scale(4))
+    local outer_width = s(outer.width, stroke_width)
     local outer_color = outer.color or stroke_color
     local outer_alpha = pick(outer.alpha, stroke_alpha)
 
@@ -827,21 +839,21 @@ local function draw_music_bracket(cr, theme, cfg, x0, y0, pw, ph)
   local b = cfg.bracket or {}
   if b.enabled == false then return end
 
-  local bx = x0 + (tonumber(b.x) or 0)
-  local by = y0 + (tonumber(b.y) or 0)
+  local bx = x0 + s(b.x, 0)
+  local by = y0 + s(b.y, 0)
   local flip_v = b.flip_v == true
   local dir = flip_v and -1 or 1
-  local short = (tonumber(b.short) or 0) * dir
-  local diag_dx = tonumber(b.diag_dx) or 0
-  local diag_dy = (tonumber(b.diag_dy) or 0) * dir
+  local short = s(b.short, 0) * dir
+  local diag_dx = s(b.diag_dx, 0)
+  local diag_dy = s(b.diag_dy, 0) * dir
   local diag_scale = tonumber(b.diag_scale) or 1.0
-  local diag_short = tonumber(b.diag_short) or 0
-  local long_len_cfg = tonumber(b.long_len) or 0
-  local vert = tonumber(b.vert) or 0
-  local width = tonumber(b.width) or 2.0
+  local diag_short = s(b.diag_short, 0)
+  local long_len_cfg = s(b.long_len, 0)
+  local vert = s(b.vert, 0)
+  local width = s(b.width, scale(2.0))
   local alpha = tonumber(b.alpha) or 0.30
   local color = b.color or (theme.palette and theme.palette.white) or { 1.00, 1.00, 1.00 }
-  local bottom_pad = tonumber(b.bottom_pad) or 0
+  local bottom_pad = s(b.bottom_pad, 0)
 
   local dx = diag_dx * diag_scale
   local dy = diag_dy * diag_scale
@@ -884,12 +896,12 @@ local function draw_music_title(cr, theme, cfg, x0, y0, pw, ph)
   if font == nil or font == "" or font == "auto" then
     font = (theme.fonts and theme.fonts.title) or "Sans"
   end
-  local size = tonumber(tcfg.size) or 24
+  local size = s(tcfg.size, scale(24))
   local alpha = tonumber(tcfg.alpha) or 0.75
   local color = tcfg.color or (theme.palette and theme.palette.black) or { 0.00, 0.00, 0.00 }
 
-  local x = x0 + (tonumber(tcfg.x) or 0)
-  local y = y0 + (tonumber(tcfg.y) or (ph / 2))
+  local x = x0 + s(tcfg.x, 0)
+  local y = y0 + s(tcfg.y, (ph / 2))
   local rot = tonumber(tcfg.rot_deg) or -90
 
   util.draw_text_center_rotated(cr, x, y, text, font, size, color, alpha, math.rad(rot))
@@ -934,9 +946,9 @@ local function draw_text_marquee(cr, theme, x, y, txt, font_face, font_size, col
   if txt == nil or txt == "" then return end
   local cfg = mq or {}
   local enabled = (cfg.enabled ~= false)
-  local max_w = tonumber(cfg.max_w) or 0
-  local gap_px = tonumber(cfg.gap_px) or 40
-  local speed_px_u = tonumber(cfg.speed_px_u) or 2
+  local max_w = s(cfg.max_w, 0)
+  local gap_px = s(cfg.gap_px, scale(40))
+  local speed_px_u = s(cfg.speed_px_u, scale(2))
   local wtxt = text_width(cr, theme, font_face, font_size, txt)
 
   if not enabled or max_w <= 0 or wtxt <= max_w then
@@ -1076,33 +1088,33 @@ function conky_draw_music_widget()
   draw_music_bracket(cr, theme, cfg, x0, y0, pw, ph)
   draw_music_title(cr, theme, cfg, x0, y0, pw, ph)
 
-  local content_x = x0 + (tonumber(cfg.content_offset_x) or 0)
-  local content_y = y0 + (tonumber(cfg.content_offset_y) or 0)
+  local content_x = x0 + s(cfg.content_offset_x, 0)
+  local content_y = y0 + s(cfg.content_offset_y, 0)
 
   local art = cfg.art or {}
-  local art_x = content_x + (tonumber(art.x) or 30)
-  local art_y = content_y + (tonumber(art.y) or 30)
-  local art_w = tonumber(art.w) or 96
-  local art_h = tonumber(art.h) or 96
+  local art_x = content_x + s(art.x, scale(30))
+  local art_y = content_y + s(art.y, scale(30))
+  local art_w = s(art.w, scale(96))
+  local art_h = s(art.h, scale(96))
 
   draw_cover_art(cr, art_x, art_y, art_w, art_h, art.fallback or "icons/horn-of-odin.png")
 
   local meta = get_player_meta()
 
   local header = cfg.header or {}
-  local header_gap_x = tonumber(header.gap_x) or 16
-  local header_line_gap = tonumber(header.line_gap) or 6
+  local header_gap_x = s(header.gap_x, scale(16))
+  local header_line_gap = s(header.line_gap, scale(6))
   local header_x = header.x
   if header_x == nil then
     header_x = art_x + art_w + header_gap_x
   else
-    header_x = content_x + tonumber(header_x)
+    header_x = content_x + s(header_x, 0)
   end
   local header_y = header.y
   if header_y == nil then
     header_y = art_y
   else
-    header_y = content_y + tonumber(header_y)
+    header_y = content_y + s(header_y, 0)
   end
 
   local artist_cfg = header.artist or {}
@@ -1125,7 +1137,7 @@ function conky_draw_music_widget()
 
   local line_y = header_y
   if artist_txt and artist_txt ~= "" then
-    local size = tonumber(artist_cfg.size) or 20
+    local size = s(artist_cfg.size, scale(20))
     local font = artist_cfg.font or (theme.fonts and theme.fonts.title) or "Sans"
     draw_text_marquee(cr, theme, header_x, line_y + size, artist_txt, font, size,
       artist_cfg.color or (theme.palette and theme.palette.white) or { 1, 1, 1 },
@@ -1134,7 +1146,7 @@ function conky_draw_music_widget()
   end
 
   if album_txt and album_txt ~= "" then
-    local size = tonumber(album_cfg.size) or 16
+    local size = s(album_cfg.size, scale(16))
     local font = album_cfg.font or (theme.fonts and theme.fonts.value) or "Sans"
     draw_text_marquee(cr, theme, header_x, line_y + size, album_txt, font, size,
       album_cfg.color or (theme.palette and theme.palette.gray and theme.palette.gray.g90) or { 1, 1, 1 },
@@ -1143,7 +1155,7 @@ function conky_draw_music_widget()
   end
 
   if title_txt and title_txt ~= "" then
-    local size = tonumber(title_cfg.size) or 18
+    local size = s(title_cfg.size, scale(18))
     local font = title_cfg.font or (theme.fonts and theme.fonts.value) or "Sans"
     draw_text_marquee(cr, theme, header_x, line_y + size, title_txt, font, size,
       title_cfg.color or (theme.palette and theme.palette.white) or { 1, 1, 1 },
@@ -1151,14 +1163,16 @@ function conky_draw_music_widget()
   end
 
   local progress = cfg.progress or {}
-  local prog_x = content_x + (tonumber(progress.x) or 30)
+  local prog_x = content_x + s(progress.x, scale(30))
   local prog_y
   if progress.y ~= nil then
-    prog_y = content_y + tonumber(progress.y)
+    prog_y = content_y + s(progress.y, 0)
   else
-    prog_y = art_y + art_h + 24
+    prog_y = art_y + art_h + scale(24)
   end
-  local prog_len = tonumber(progress.length) or (pw - (prog_x - x0) - 30)
+  local prog_len = progress.length ~= nil
+      and s(progress.length, 0)
+      or (pw - (prog_x - x0) - scale(30))
   if prog_len < 0 then prog_len = 0 end
 
   local pos_ms, len_ms = get_player_times()
@@ -1166,7 +1180,7 @@ function conky_draw_music_widget()
 
   local prog_col = progress.color or (theme.palette and theme.palette.gray and theme.palette.gray.g80) or { 1, 1, 1 }
   local prog_alpha = tonumber(progress.alpha) or 0.8
-  local prog_stroke = tonumber(progress.stroke) or 2.0
+  local prog_stroke = s(progress.stroke, scale(2.0))
 
   if prog_len > 0 then
     util.set_rgba(cr, prog_col, prog_alpha)
@@ -1176,7 +1190,7 @@ function conky_draw_music_widget()
     cairo_stroke(cr)
 
     local marker = progress.marker or {}
-    local md = tonumber(marker.diameter) or 10
+    local md = s(marker.diameter, scale(10))
     local mcol = marker.color or (theme.palette and theme.palette.accent and theme.palette.accent.maroon) or { 0.40, 0.08, 0.12 }
     local malpha = tonumber(marker.alpha) or 1.0
     local mx = prog_x + prog_len * frac
@@ -1187,10 +1201,10 @@ function conky_draw_music_widget()
 
   local time_cfg = progress.time or {}
   local time_font = time_cfg.font or (theme.fonts and theme.fonts.value_mono) or "Sans"
-  local time_size = tonumber(time_cfg.size) or 12
+  local time_size = s(time_cfg.size, scale(12))
   local time_color = time_cfg.color or prog_col
   local time_alpha = tonumber(time_cfg.alpha) or 0.8
-  local time_dy = tonumber(time_cfg.dy) or 18
+  local time_dy = s(time_cfg.dy, scale(18))
 
   local played_str = fmt_clock_ms(pos_ms)
   local remain_str = (len_ms > 0) and ("-" .. fmt_clock_ms(len_ms - pos_ms)) or "-0:00"
@@ -1199,22 +1213,27 @@ function conky_draw_music_widget()
   draw_text_right(cr, theme, prog_x + prog_len, prog_y + time_dy, remain_str, time_font, time_size, time_color, time_alpha)
 
   local lyrics_cfg = cfg.lyrics or {}
-  local lyrics_x = content_x + (tonumber(lyrics_cfg.x) or 30)
+  local lyrics_x = content_x + s(lyrics_cfg.x, scale(30))
   local lyrics_y
   if lyrics_cfg.y ~= nil then
-    lyrics_y = content_y + tonumber(lyrics_cfg.y)
+    lyrics_y = content_y + s(lyrics_cfg.y, 0)
   else
-    lyrics_y = prog_y + (tonumber(lyrics_cfg.gap_y) or 28)
+    lyrics_y = prog_y + s(lyrics_cfg.gap_y, scale(28))
   end
-  local lyrics_w = tonumber(lyrics_cfg.w) or (prog_len > 0 and prog_len or (pw - (lyrics_x - x0) - 30))
-  local lyrics_h = tonumber(lyrics_cfg.h) or (y0 + ph - lyrics_y - (tonumber(lyrics_cfg.bottom_pad) or 20))
+  local lyrics_w = lyrics_cfg.w ~= nil
+      and s(lyrics_cfg.w, 0)
+      or (prog_len > 0 and prog_len or (pw - (lyrics_x - x0) - scale(30)))
+  local bottom_pad = s(lyrics_cfg.bottom_pad, scale(20))
+  local lyrics_h = lyrics_cfg.h ~= nil
+      and s(lyrics_cfg.h, 0)
+      or (y0 + ph - lyrics_y - bottom_pad)
 
   if lyrics_w > 0 and lyrics_h > 0 then
     local lfont = lyrics_cfg.font or (theme.fonts and theme.fonts.value_mono) or "Sans"
-    local lsize = tonumber(lyrics_cfg.size) or 13
+    local lsize = s(lyrics_cfg.size, scale(13))
     local lcolor = lyrics_cfg.color or (theme.palette and theme.palette.white) or { 1, 1, 1 }
     local lalpha = tonumber(lyrics_cfg.alpha) or 0.85
-    local line_px = tonumber(lyrics_cfg.line_px) or (lsize + 3)
+    local line_px = s(lyrics_cfg.line_px, nil) or (lsize + scale(3))
     local wrap_w = lyrics_w
     if lyrics_cfg.wrap_enabled == true and prog_len > 0 then
       wrap_w = math.min(lyrics_w, prog_len)
@@ -1240,8 +1259,8 @@ function conky_draw_music_widget()
       end
 
       if footer and footer ~= "" then
-        local footer_pt = math.max(9, lsize - 1)
-        local footer_line_px = tonumber(lyrics_cfg.footer_line_px) or (footer_pt + 3)
+        local footer_pt = math.max(scale(9), lsize - scale(1))
+        local footer_line_px = s(lyrics_cfg.footer_line_px, nil) or (footer_pt + scale(3))
         local footer_y = lyrics_y + (lyrics_h - footer_line_px) + footer_pt
         draw_text_left(cr, theme, lyrics_x, footer_y, footer, lfont, footer_pt, lcolor, 0.75)
       end

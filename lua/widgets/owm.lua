@@ -74,6 +74,7 @@
 local HOME = os.getenv("HOME") or ""
 local SUITE_DIR = os.getenv("CONKY_SUITE_DIR") or (HOME .. "/.config/conky/gtex62-tech-hud")
 local util = dofile(SUITE_DIR .. "/lua/lib/util.lua")
+local draw_scale = util.scale
 local CACHE_DIR = util.cache_dir
 local THEME = util.get_theme()
 if type(THEME) ~= "table" or next(THEME) == nil then
@@ -95,7 +96,7 @@ end
 local function weather_widget_offsets()
   local wx = tonumber(tget(THEME, "weather_widget.center_x_offset")) or 0
   local wy = tonumber(tget(THEME, "weather_widget.center_y_offset")) or 0
-  return wx, wy
+  return draw_scale(wx), draw_scale(wy)
 end
 
 local function clock_center()
@@ -1142,7 +1143,7 @@ function conky_owm_draw_forecast_placeholder()
   end
 
   local cfg    = tget_or("weather.forecast", nil) or tget_or("forecast", nil) or {}
-  local y_off  = tonumber(tget(THEME, "weather.forecast.y_offset")) or 0
+  local y_off  = draw_scale(tonumber(tget(THEME, "weather.forecast.y_offset")) or 0)
   local F      = (THEME.weather and THEME.weather.forecast) or {}
   local wx, wy = weather_widget_offsets()
   local cx0, cy0 = clock_center()
@@ -1151,8 +1152,8 @@ function conky_owm_draw_forecast_placeholder()
   if tiles > max_tiles then tiles = max_tiles end
   if tiles < 1 then tiles = 1 end
   local tile   = cfg.tile or { w = 64, h = 110 }
-  local tile_w = tonumber(F.tile_w) or tile.w or 64
-  local gap    = tonumber(F.gap) or cfg.gap or 34
+  local tile_w = draw_scale(tonumber(F.tile_w) or tile.w or 64)
+  local gap    = draw_scale(tonumber(F.gap) or cfg.gap or 34)
   local alpha  = (cfg.alpha ~= nil) and cfg.alpha or 1.0
 
   local date   = cfg.date or { pt = 11, dy = 0, color = { 0.85, 0.85, 0.85, 1.0 } }
@@ -1222,7 +1223,7 @@ function conky_owm_draw_forecast_placeholder()
   end
 
   local strip_w = (tiles * tile_w) + ((tiles - 1) * gap)
-  local x_off = tonumber(tget(THEME, "weather.forecast.x_offset")) or 0
+  local x_off = draw_scale(tonumber(tget(THEME, "weather.forecast.x_offset")) or 0)
   local ox = (cx0 + wx) - (strip_w / 2) + x_off
   local oy = (cy0 + wy) + y_off
 
@@ -1244,14 +1245,18 @@ function conky_owm_draw_forecast_placeholder()
 
       -- tile i = today + i days
       local ts         = noon_today + (i * 86400)
-      local base       = (date.pt or 11)
-      local w_pt       = dow_pt or (base + 2) -- weekday size
+      local base_raw   = (date.pt or 11)
+      local w_pt_raw   = dow_pt or (base_raw + 2) -- weekday size
+      local base       = draw_scale(base_raw)
+      local w_pt       = draw_scale(w_pt_raw)
+      local date_dy    = draw_scale(date.dy or 0)
+      local date_gap   = draw_scale(2)
       local dow        = os.date("%a", ts)    -- e.g., Thu
       local mdy        = os.date("%b %e", ts) -- e.g., Nov  6
 
       local top_y      = y + w_pt
       draw_centered_text(cx, top_y, dow, w_pt, date.color, dow_weight_cairo)
-      draw_centered_text(cx, top_y + (date.dy or 0) + base + 2, mdy, base, date.color)
+      draw_centered_text(cx, top_y + date_dy + base + date_gap, mdy, base, date.color)
     end
 
 
@@ -1259,8 +1264,8 @@ function conky_owm_draw_forecast_placeholder()
 
     -- icon PNG centered; fallback to hollow circle
     do
-      local size = icon.size or 44
-      local ic_y = y + (icon.dy or 20) + size / 2
+      local size = draw_scale(icon.size or 44)
+      local ic_y = y + draw_scale(icon.dy or 20) + size / 2
       local dir  = icon.dir or (CACHE_DIR .. "/icons")
       local path = string.format("%s/fc%d.png", dir, i)
 
@@ -1305,9 +1310,12 @@ function conky_owm_draw_forecast_placeholder()
       end
     end
     local lo_txt = lo_val and string.format("%.0f", lo_val) or "58°"
-    local t_y = y + (temps.dy or 74)
-    draw_centered_text(cx, t_y, hi_txt, temps.pt, temps.color_hi, temps_weight_cairo, temps_font)
-    draw_centered_text(cx, t_y + temps.pt + 2, lo_txt, temps.pt, temps.color_lo, temps_weight_cairo, temps_font)
+    local temps_pt = draw_scale(temps.pt or 12)
+    local temps_dy = draw_scale(temps.dy or 74)
+    local temps_gap = draw_scale(2)
+    local t_y = y + temps_dy
+    draw_centered_text(cx, t_y, hi_txt, temps_pt, temps.color_hi, temps_weight_cairo, temps_font)
+    draw_centered_text(cx, t_y + temps_pt + temps_gap, lo_txt, temps_pt, temps.color_lo, temps_weight_cairo, temps_font)
   end
 
   cairo_restore(cr)

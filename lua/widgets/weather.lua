@@ -191,10 +191,10 @@ function conky_draw_weather_widget()
 
     do
       local vline = weather.vline or {}
-      local len = tonumber(vline.length) or 60
-      local lw = tonumber(vline.width) or 2
-      local dx = tonumber(vline.dx) or 0
-      local dy = tonumber(vline.dy) or 0
+      local len = scale(tonumber(vline.length) or 60)
+      local lw = scale(tonumber(vline.width) or 2)
+      local dx = scale(tonumber(vline.dx) or 0)
+      local dy = scale(tonumber(vline.dy) or 0)
       local col = vline.color or "A0A0A0"
       local alpha = tonumber(vline.alpha) or 1.0
       local base_cx = (w / 2) + wx

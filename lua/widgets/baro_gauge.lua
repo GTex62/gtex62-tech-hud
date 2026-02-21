@@ -197,7 +197,7 @@ local function draw_text_center_centered(cr, x, y, txt, font_face, font_size, co
   cairo_show_text(cr, txt)
 end
 
-local function draw_baro_gauge_impl()
+local function draw_baro_gauge_impl(extra_dx, extra_dy)
   if conky_window == nil then return end
 
   local t = get_theme()
@@ -208,13 +208,16 @@ local function draw_baro_gauge_impl()
   local cs = cairo_xlib_surface_create(conky_window.display, conky_window.drawable, conky_window.visual, w, h)
   local cr = cairo_create(cs)
 
-  local base_cx = (w / 2) + scale(tonumber(bg.center_x_offset) or 0)
-  local base_cy = (h / 2) + scale(tonumber(bg.center_y_offset) or 0)
+  local dx = scale(tonumber(extra_dx) or 0)
+  local dy = scale(tonumber(extra_dy) or 0)
+  local base_cx = (w / 2) + scale(tonumber(bg.center_x_offset) or 0) + dx
+  local base_cy = (h / 2) + scale(tonumber(bg.center_y_offset) or 0) + dy
   local circle = bg.circle or {}
   local circle_outer = bg.circle_outer or {}
   local center_x = base_cx
   local center_y = base_cy + scale(tonumber(circle.offset_y) or 0)
-  local circle_radius = scale(tonumber(circle.radius) or 120)
+  local base_radius = tonumber(circle.radius) or 120
+  local circle_radius = scale(base_radius)
   local circle_stroke = scale(tonumber(circle.stroke_width) or 3.0)
   local sm = t.station_model or {}
   local txt = bg.text or {}
@@ -228,8 +231,9 @@ local function draw_baro_gauge_impl()
   else
     inhg_val = (hpa_val and (hpa_val / 33.8639)) or inhg
   end
-  local outer_offset = scale(tonumber(circle_outer.radius_offset) or 4)
-  local outer_radius = scale(tonumber(circle_outer.radius) or (circle_radius + outer_offset))
+  local outer_offset = tonumber(circle_outer.radius_offset) or 4
+  local outer_radius = tonumber(circle_outer.radius) or (base_radius + outer_offset)
+  outer_radius = scale(outer_radius)
 
   if circle.enabled ~= false then
     local fill_col = circle.fill_color or { 0.30, 0.30, 0.30 }
@@ -444,9 +448,22 @@ end
 ---@diagnostic disable-next-line: lowercase-global
 function conky_baro_gauge(key)
   if key ~= "draw" then return "" end
-  local ok, err = pcall(draw_baro_gauge_impl)
+  local ok, err = pcall(draw_baro_gauge_impl, 0, 0)
   if not ok then
     print("baro gauge error: " .. tostring(err))
   end
   return ""
+end
+
+function conky_draw_baro_gauge_embed()
+  local t = get_theme()
+  local emb = t.embedded_corners or {}
+  local cfg = emb.baro_gauge or {}
+  if emb.enabled ~= true then return end
+  if cfg.enabled == false then return end
+  local dx, dy = util.embedded_corner_offset("baro_gauge")
+  local ok, err = pcall(draw_baro_gauge_impl, dx, dy)
+  if not ok then
+    print("baro gauge embed error: " .. tostring(err))
+  end
 end

@@ -616,4 +616,20 @@ function conky_draw_center_post()
   if type(conky_draw_calendar_ring) == "function" then
     conky_draw_calendar_ring()
   end
+  local t = get_theme()
+  local emb = t.embedded_corners or {}
+  if emb.enabled then
+    if (emb.system and emb.system.enabled ~= false) and type(conky_draw_system_embed) == "function" then
+      conky_draw_system_embed()
+    end
+    if (emb.network and emb.network.enabled ~= false) and type(conky_draw_network_embed) == "function" then
+      conky_draw_network_embed()
+    end
+    if (emb.station_model and emb.station_model.enabled ~= false) and type(conky_draw_station_model_embed) == "function" then
+      conky_draw_station_model_embed()
+    end
+    if (emb.baro_gauge and emb.baro_gauge.enabled ~= false) and type(conky_draw_baro_gauge_embed) == "function" then
+      conky_draw_baro_gauge_embed()
+    end
+  end
 end
