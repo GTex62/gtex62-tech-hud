@@ -27,7 +27,7 @@ local pick_font = theme_core.pick_font
 ----------------------------------------------------------------
 -- Monitor Selection and Suite Scale
 local t = {
-  monitor_head = 1, -- 0 = primary, 1 = secondary
+  monitor_head = 0, -- 0 = primary, 1 = secondary
   scale = 1.00,     -- draw scale used by util.scale() for widget rendering (text/lines/shapes)
 
   -- Layout scale vs draw scale:
