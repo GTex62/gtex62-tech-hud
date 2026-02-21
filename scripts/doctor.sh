@@ -9,6 +9,9 @@ HOME_DIR="${HOME:-}"
 SUITE_DIR="${CONKY_SUITE_DIR:-$HOME_DIR/.config/conky/gtex62-tech-hud}"
 CACHE_DIR="${CONKY_CACHE_DIR:-${XDG_CACHE_HOME:-$HOME_DIR/.cache}/conky}"
 CONFIG_DIR="$SUITE_DIR/config"
+SUITE_NAME="$(basename "$SUITE_DIR")"
+SCREEN_CACHE="$CACHE_DIR/${SUITE_NAME}-screen-size"
+ENV_FILE="$SCRIPT_DIR/conky-env.sh"
 
 DOCTOR_SSH_TTL="${DOCTOR_SSH_TTL:-300}"
 SSH_LAST_FILE="$CACHE_DIR/pfsense/doctor_ssh_last"
@@ -80,6 +83,20 @@ read_kv() {
   val="${line#*=}"
   val="${val%%#*}"
   val="$(printf '%s' "$val" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')"
+  printf '%s' "$val"
+}
+
+read_export() {
+  local file="$1" key="$2" line val
+  [[ -f "$file" ]] || return 1
+  line="$(grep -E "^[[:space:]]*export[[:space:]]+${key}=" "$file" | tail -n1 || true)"
+  if [[ -z "$line" ]]; then
+    printf '%s' ""
+    return 0
+  fi
+  val="${line#*=}"
+  val="${val%%#*}"
+  val="$(printf '%s' "$val" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//; s/^\"//; s/\"$//')"
   printf '%s' "$val"
 }
 
@@ -293,6 +310,51 @@ if [[ -d "$CACHE_DIR" ]]; then
   say "OK" "Cache dir: $CACHE_DIR"
 else
   say "WARN" "Cache dir missing ($CACHE_DIR)" "set CONKY_CACHE_DIR or create the directory"
+fi
+
+section "Layout"
+screen_w_env="${CONKY_SCREEN_W:-}"
+screen_h_env="${CONKY_SCREEN_H:-}"
+if [[ -n "$screen_w_env" && -n "$screen_h_env" ]]; then
+  say "OK" "CONKY_SCREEN_W/H (env): ${screen_w_env}x${screen_h_env}"
+else
+  say "WARN" "CONKY_SCREEN_W/H not set" "run scripts/set-screen-size.sh or set in scripts/conky-env.sh"
+fi
+
+screen_w_file="$(read_export "$ENV_FILE" "CONKY_SCREEN_W" || true)"
+screen_h_file="$(read_export "$ENV_FILE" "CONKY_SCREEN_H" || true)"
+if [[ -n "$screen_w_file" && -n "$screen_h_file" ]]; then
+  say "OK" "conky-env.sh CONKY_SCREEN_W/H: ${screen_w_file}x${screen_h_file}"
+else
+  say "WARN" "conky-env.sh missing CONKY_SCREEN_W/H exports" "run scripts/set-screen-size.sh"
+fi
+
+if [[ -x "$SCRIPT_DIR/set-screen-size.sh" ]]; then
+  helper_out="$("$SCRIPT_DIR/set-screen-size.sh" --dry-run 2>/dev/null || true)"
+  helper_w="$(grep -Eo 'CONKY_SCREEN_W=[0-9]+' <<< "$helper_out" | head -n1 | cut -d= -f2 || true)"
+  helper_h="$(grep -Eo 'CONKY_SCREEN_H=[0-9]+' <<< "$helper_out" | head -n1 | cut -d= -f2 || true)"
+  if [[ -n "$helper_w" && -n "$helper_h" ]]; then
+    say "OK" "Helper detected: ${helper_w}x${helper_h}"
+    if [[ -n "$screen_w_file" && -n "$screen_h_file" ]] \
+      && [[ ( "$screen_w_file" != "$helper_w" ) || ( "$screen_h_file" != "$helper_h" ) ]]; then
+      say "WARN" "Helper differs from conky-env.sh (${screen_w_file}x${screen_h_file})" \
+        "run scripts/set-screen-size.sh or update scripts/conky-env.sh"
+    elif [[ -n "$screen_w_env" && -n "$screen_h_env" ]] \
+      && [[ ( "$screen_w_env" != "$helper_w" ) || ( "$screen_h_env" != "$helper_h" ) ]]; then
+      say "WARN" "Helper differs from env (${screen_w_env}x${screen_h_env})" \
+        "run scripts/set-screen-size.sh or set CONKY_SCREEN_W/H in scripts/conky-env.sh"
+    fi
+  else
+    say "WARN" "Helper detection unavailable" "install xrandr or set CONKY_SCREEN_W/H in scripts/conky-env.sh"
+  fi
+else
+  say "WARN" "set-screen-size.sh missing" "restore scripts/set-screen-size.sh"
+fi
+
+if [[ -f "$SCREEN_CACHE" ]]; then
+  say "OK" "Screen-size cache flag present"
+else
+  say "WARN" "Screen-size cache flag missing" "start the suite once or run scripts/set-screen-size.sh"
 fi
 
 section "Config"

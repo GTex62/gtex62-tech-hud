@@ -27,8 +27,45 @@ local pick_font = theme_core.pick_font
 ----------------------------------------------------------------
 -- Monitor Selection and Suite Scale
 local t = {
-  monitor_head = 1, -- 1 for dual monitors
-  scale = 1.0,      -- overall scale
+  monitor_head = 0, -- 0 = primary, 1 = secondary
+  scale = 1.00,     -- overall scale
+
+  -- Layout (positions scale separately from draw scale)
+  layout = {
+    base_width = 3840,     -- design width for positions below
+    base_height = 2160,    -- design height for positions below
+    scale_mode = "manual", -- "manual" or "auto" (uses CONKY_SCREEN_W/H)
+    scale = 1.00,          -- layout scale when mode="manual"
+    tie_draw_scale = true, -- when true, sets theme.scale from layout scale
+    positions = {
+      time = { x = 0, y = 0 },
+      pfsense = { x = 0, y = 0 },
+      sitrep = { x = 10, y = 517 },
+      system = { x = 810, y = 288 },
+      station_model = { x = 810, y = 865 },
+      network = { x = 1542, y = 288 },
+      baro_gauge = { x = 1542, y = 865 },
+      notes = { x = 450, y = 380 },
+      doctor = { x = 260, y = 420 },
+      music = { x = 1960, y = 380 },
+      font_probe = { x = 30, y = 30 },
+    },
+    inverse_positions = {},
+    position_fit = {},
+    sizes = {
+      time = { min_w = 1200, max_w = 1200, min_h = 1200 },
+      pfsense = { min_w = 1200, max_w = 1200, min_h = 1200 },
+      sitrep = { min_w = 460, max_w = 560, min_h = 800 },
+      system = { min_w = 400, max_w = 400, min_h = 400 },
+      station_model = { min_w = 400, max_w = 400, min_h = 400 },
+      network = { min_w = 400, max_w = 400, min_h = 400 },
+      baro_gauge = { min_w = 400, max_w = 400, min_h = 400 },
+      notes = { min_w = 360, max_w = 360, min_h = 700 },
+      doctor = { min_w = 520, max_w = 520, min_h = 600 },
+      music = { min_w = 560, max_w = 560, min_h = 1100 },
+      font_probe = { min_w = 2400, max_w = 2400, min_h = 1400 },
+    },
+  },
 
   -- Colors
   palette = palette,
@@ -1294,5 +1331,144 @@ local t = {
     },
   },
 }
+
+----------------------------------------------------------------
+-- Layout Helpers
+----------------------------------------------------------------
+local function layout_scale_value()
+  local L = t.layout or {}
+  local mode = L.scale_mode or "manual"
+  if mode == "auto" then
+    local w = tonumber(os.getenv("CONKY_SCREEN_W"))
+    local h = tonumber(os.getenv("CONKY_SCREEN_H"))
+    local bw = tonumber(L.base_width)
+    local bh = tonumber(L.base_height)
+    if w and h and bw and bh and bw > 0 and bh > 0 then
+      local sw = w / bw
+      local sh = h / bh
+      return math.min(sw, sh)
+    end
+  end
+  return tonumber(L.scale) or 1.0
+end
+
+local function layout_scale()
+  local s = layout_scale_value()
+  if (t.layout or {}).tie_draw_scale then
+    t.scale = s
+  end
+  return s
+end
+
+function t.layout_pos(key)
+  local L = t.layout or {}
+  local p = (L.positions or {})[key] or { x = 0, y = 0 }
+  local s = layout_scale()
+  local fit = (L.position_fit or {})[key]
+
+  local function interp_points(axis)
+    local points = fit and fit.points
+    if type(points) ~= "table" or #points < 2 then
+      return nil
+    end
+    local first = points[1]
+    local last = points[#points]
+    if not first or not last then
+      return nil
+    end
+    local function get_val(pt)
+      return pt and pt[axis] and tonumber(pt[axis]) or nil
+    end
+    if s >= (first.scale or 0) then
+      local a = first
+      local b = points[2]
+      if not b then return get_val(a) end
+      local denom = (a.scale or s) - (b.scale or s)
+      if denom == 0 then return get_val(a) end
+      local t = (s - (b.scale or s)) / denom
+      local av = get_val(a)
+      local bv = get_val(b)
+      if av == nil or bv == nil then return nil end
+      return bv + t * (av - bv)
+    end
+    if s <= (last.scale or s) then
+      local a = points[#points - 1]
+      local b = last
+      if not a then return get_val(b) end
+      local denom = (a.scale or s) - (b.scale or s)
+      if denom == 0 then return get_val(b) end
+      local t = (s - (b.scale or s)) / denom
+      local av = get_val(a)
+      local bv = get_val(b)
+      if av == nil or bv == nil then return nil end
+      return bv + t * (av - bv)
+    end
+    for i = 1, #points - 1 do
+      local a = points[i]
+      local b = points[i + 1]
+      local sa = a and a.scale
+      local sb = b and b.scale
+      if sa and sb and s <= sa and s >= sb then
+        local denom = sa - sb
+        if denom == 0 then return get_val(a) end
+        local t = (s - sb) / denom
+        local av = get_val(a)
+        local bv = get_val(b)
+        if av == nil or bv == nil then return nil end
+        return bv + t * (av - bv)
+      end
+    end
+    return nil
+  end
+
+  local inv = (L.inverse_positions or {})[key]
+  local sx = s
+  local sy = s
+  if inv then
+    if s ~= 0 then
+      if type(inv) == "table" then
+        if inv.x then sx = 1 / s end
+        if inv.y then sy = 1 / s end
+      else
+        sx = 1 / s
+        sy = 1 / s
+      end
+    end
+  end
+  local function fit_axis(base_val, ref_val, axis_scale, axis)
+    local curve_val = interp_points(axis)
+    if curve_val ~= nil then
+      return math.floor(curve_val + 0.5)
+    end
+    if not fit or ref_val == nil then
+      return math.floor((tonumber(base_val) or 0) * axis_scale + 0.5)
+    end
+    local base = tonumber(base_val) or 0
+    local ref = tonumber(ref_val)
+    local ref_scale = tonumber(fit.ref_scale) or 1.0
+    if base <= 0 or not ref or ref <= 0 or ref_scale <= 0 or s <= 0 then
+      return math.floor(base * axis_scale + 0.5)
+    end
+    local k = math.log(ref / base) / math.log(ref_scale)
+    return math.floor(base * (s ^ k) + 0.5)
+  end
+  local ref = fit and (fit.ref or {}) or {}
+  return {
+    x = fit_axis(p.x, fit and (fit.x or ref.x) or nil, sx, "x"),
+    y = fit_axis(p.y, fit and (fit.y or ref.y) or nil, sy, "y"),
+  }
+end
+
+function t.layout_dim(key, field, fallback)
+  local L = t.layout or {}
+  local size = (L.sizes or {})[key] or {}
+  local v = size[field]
+  if v == nil then v = fallback end
+  if v == nil then return nil end
+  local s = layout_scale()
+  return math.floor((tonumber(v) or 0) * s + 0.5)
+end
+
+layout_scale()
 
 return t

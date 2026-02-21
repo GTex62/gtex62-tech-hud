@@ -13,6 +13,13 @@ mkdir -p "$CACHE_DIR"
 SUITE_NAME="$(basename "$SUITE_DIR")"
 WALLPAPER_DIR="$SUITE_DIR/wallpapers"
 CACHE_LAST="$CACHE_DIR/${SUITE_NAME}-wallpaper"
+CACHE_SCREEN="$CACHE_DIR/${SUITE_NAME}-screen-size"
+
+if [ ! -f "$CACHE_SCREEN" ]; then
+  if "$SUITE_DIR/scripts/set-screen-size.sh" >/dev/null 2>&1; then
+    touch "$CACHE_SCREEN"
+  fi
+fi
 
 mapfile -t WALLS < <(find "$WALLPAPER_DIR" -maxdepth 1 -type f -printf '%f\n' | sort)
 

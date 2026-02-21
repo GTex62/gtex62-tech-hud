@@ -122,6 +122,8 @@ Common overrides (edit `scripts/conky-env.sh`):
 ```bash
 export CONKY_SUITE_DIR="$HOME/.config/conky/gtex62-tech-hud"   # where the suite lives
 export CONKY_CACHE_DIR="$HOME/.cache/conky"                   # cache location
+export CONKY_SCREEN_W="3840"                                  # primary screen width (layout auto-scale)
+export CONKY_SCREEN_H="2160"                                  # primary screen height (layout auto-scale)
 export PFSENSE_HOST="192.168.1.1"                             # optional
 export AP_IPS="192.168.1.2,192.168.1.3"                       # optional
 export AP_LABELS="Closet,Office"                              # optional
@@ -156,8 +158,9 @@ ${CONKY_SUITE_DIR:-~/.config/conky/gtex62-tech-hud}/
 
 Start here:
 
-- **Layout / placement**: edit each `widgets/*.conky.conf` (`alignment`, `gap_x`, `gap_y`, `minimum_width/height`)
+- **Layout / placement**: edit `theme.lua` → `layout.positions` (and `layout` scale settings)
 - **Global look (fonts/colors/alpha)**: edit `theme.lua` (and `lua/lib/theme-core.lua` for shared palette/fonts)
+- **Monitor targeting**: set `monitor_head` in `theme.lua` (`0` = primary, `1` = secondary) to drive `xinerama_head` for all widgets
 - **pfSense arcs look/geometry**: edit `theme-pf.lua`
 - **SITREP styling + overrides**: edit `theme-sitrep.lua`
 - **Environment paths + optional devices**: edit `scripts/conky-env.sh`
@@ -166,6 +169,18 @@ Tip: keep cache directories separated per suite if you run multiple suites:
 
 - set `CONKY_CACHE_DIR` uniquely, and
 - set `weather.icon_cache_dir` to a suite-specific subdir to avoid icon collisions.
+
+## Layout Scaling
+
+- Set `theme.lua` → `layout.base_width`/`layout.base_height` to the resolution your positions were designed for.
+- Set `theme.lua` → `layout.scale_mode = "auto"` to scale positions based on `CONKY_SCREEN_W/H`.
+- Optional: set `theme.lua` → `layout.tie_draw_scale = true` to auto-set `theme.scale` from layout scale (shrinks/expands widget drawings).
+- Window sizes scale from `theme.lua` → `layout.sizes` (per-widget min/max width/height).
+- Optional: set `layout.inverse_positions` keys to make specific margins grow as scale shrinks (useful for corner widgets). You can use `{ x = true }`, `{ y = true }`, or `true` (both axes).
+- Optional: use `layout.position_fit` to force a position to hit a target at a specific scale (per-axis). Example: `{ ref_scale = 0.67, ref = { x = 1480, y = 665 } }`.
+- You can also provide `points` (sorted by `scale` high→low) for piecewise interpolation: `{ points = { { scale = 1.00, x = 810, y = 288 }, { scale = 0.80, x = 1142, y = 482 }, { scale = 0.50, x = 2182, y = 1056 } } }`.
+- Primary source is `CONKY_SCREEN_W`/`CONKY_SCREEN_H` in `scripts/conky-env.sh`. If unset and `xrandr` is available, the script will attempt to detect the primary monitor size.
+- Helper: run `scripts/set-screen-size.sh` to detect the primary display and write `CONKY_SCREEN_W/H` into `scripts/conky-env.sh` (use `--dry-run` to preview).
 
 ---
 
@@ -541,6 +556,7 @@ Automatic updates: `scripts/run-time.sh` runs the generator once each time the s
   - Sources `scripts/conky-env.sh` to resolve `CONKY_SUITE_DIR` and `CONKY_CACHE_DIR`.
   - Scans `config/*.example` and flags missing/placeholder values (OWM API key, LAT/LON).
   - Reads `$CONKY_CACHE_DIR` for expected outputs; missing or empty files are `WARN`.
+  - Reports layout auto-scale inputs (current `CONKY_SCREEN_W/H`, `conky-env.sh` exports, helper detection, and screen-size cache flag).
   - pfSense probe uses `scripts/pf-ssh-gate.sh` and attempts at most once per `DOCTOR_SSH_TTL` seconds (default `300`).
   - The doctor does not fetch data; it only validates existing caches and config.
 
