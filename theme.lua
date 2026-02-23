@@ -27,7 +27,7 @@ local pick_font = theme_core.pick_font
 ----------------------------------------------------------------
 -- Monitor Selection and Suite Scale
 local t = {
-  monitor_head = 0, -- 0 = primary, 1 = secondary
+  monitor_head = 1, -- 0 = primary, 1 = secondary
   scale = 1.00,     -- draw scale used by util.scale() for widget rendering (text/lines/shapes)
 
   -- Layout scale vs draw scale:
@@ -304,7 +304,7 @@ local t = {
     color              = palette.gray.g30, -- base ring color (palette gray g30)
     alpha              = 0.65,             -- base ring alpha
     season_tint_enable = true,             -- subtle per-season tint
-    season_tint_amount = 0.06,             -- tint blend amount (0.0-1.0)
+    season_tint_amount = 0.08,             -- tint blend amount (0.0-1.0)
     -- Season names text
     font               = fonts.value_c,    -- season names font
     title_size         = 25,               -- season names text size
@@ -958,9 +958,9 @@ local t = {
   -- Music + Lyrics (Panel)
   ----------------------------------------------------------------
   music = {
-    enabled            = true, -- toggle music panel
-    hide_when_inactive = true, -- set false to keep panel visible
-    idle_hide_after_s  = 10,   -- seconds to keep panel visible after stop
+    enabled            = true,  -- toggle music panel
+    hide_when_inactive = false, -- set false to keep panel visible
+    idle_hide_after_s  = 10,    -- seconds to keep panel visible after stop
     inactive_message   = "Play music, feel better.",
 
     content_offset_x   = 100, -- content shift from panel origin

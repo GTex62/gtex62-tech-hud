@@ -397,6 +397,7 @@ Automatic updates: `scripts/run-time.sh` runs the generator once each time the s
   - Set `LYRICS_CURL_SILENT=0` to show curl errors from online lyric providers (default is silent).
   - Cover art is cached at `$CONKY_CACHE_DIR/nowplaying_cover.png` with fallback `icons/horn-of-odin.png`. Non-PNG art is converted if `magick`, `convert`, or `ffmpeg` is available.
   - Local lyrics are searched in `LYRICS_LOCAL_DIRS` and cached under `LYRICS_CACHE_DIR` when online fetch is enabled.
+  - The lyrics.ovh provider header line (e.g., "Paroles de la chanson ...") is stripped for cleaner output.
   - Music panel geometry, offsets, and font sizes follow `theme.scale` when `layout.tie_draw_scale=true`.
   - `widgets/music.conky.conf` uses hard-coded `minimum_width`/`minimum_height` values; adjust those if you want a taller lyrics view.
   - Set `music.lyrics.wrap_enabled=true` to word-wrap lyrics to the progress line width (`music.progress.length`).

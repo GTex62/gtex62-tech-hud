@@ -110,7 +110,7 @@ if [[ "$EMBED_ENABLED" != "1" || "$EMBED_BARO" != "1" ]]; then
 fi
 
 conky -c "$SUITE_DIR/widgets/music.conky.conf" &
+conky -c "$SUITE_DIR/widgets/pfsense-conky.conf" &
 # conky -c "$SUITE_DIR/widgets/sitrep.conky.conf" &
-# conky -c "$SUITE_DIR/widgets/pfsense-conky.conf" &
 # conky -c "$SUITE_DIR/widgets/notes.conky.conf" &
 # conky -c "$SUITE_DIR/widgets/doctor.conky.conf" &

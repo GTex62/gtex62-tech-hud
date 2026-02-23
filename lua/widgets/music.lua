@@ -465,6 +465,17 @@ local function normalize_lyrics_text(s)
   return s
 end
 
+local function strip_lyrics_ovh_header(text)
+  if not text or text == "" then return text end
+  local first, rest = text:match("^(.-)\n(.*)$")
+  if not first or not rest then return text end
+  local f = first:gsub("%s+", " "):gsub("^%s+", ""):gsub("%s+$", ""):lower()
+  if f:match("^paroles de la chanson ") then
+    return rest
+  end
+  return text
+end
+
 local function strip_lrc_prefix(line, cfg)
   if not cfg.strip_lrc_timestamps then return line end
   local out = line or ""
@@ -505,13 +516,43 @@ local function ensure_dir(path)
   os.execute("mkdir -p " .. shell_quote(path) .. " >/dev/null 2>&1")
 end
 
+local function get_online_check_hosts()
+  local providers = get_noapi_providers()
+  local hosts = {}
+  local seen = {}
+  local function add(host)
+    if host and host ~= "" and not seen[host] then
+      table.insert(hosts, host)
+      seen[host] = true
+    end
+  end
+  for _, name in ipairs(providers) do
+    if name == "lyrics_ovh" then
+      add("api.lyrics.ovh")
+    elseif name == "lrclib" then
+      add("lrclib.net")
+    end
+  end
+  if #hosts == 0 then
+    add("api.lyrics.ovh")
+  end
+  return hosts
+end
+
 local function is_offline()
   local ok_ip = read_cmd("getent hosts 1.1.1.1 >/dev/null 2>&1; echo $?")
-  local ok_host = read_cmd("getent hosts lyrics.ovh >/dev/null 2>&1; echo $?")
-  if ok_ip ~= "0" or ok_host ~= "0" then
+  if ok_ip ~= "0" then
     return true
   end
-  return false
+
+  local hosts = get_online_check_hosts()
+  for _, host in ipairs(hosts) do
+    local ok_host = read_cmd("getent hosts " .. host .. " >/dev/null 2>&1; echo $?")
+    if ok_host == "0" then
+      return false
+    end
+  end
+  return true
 end
 
 local function read_lines(path, max_bytes, cfg)
@@ -613,7 +654,9 @@ local function fetch_lyrics_ovh(artist, title)
   local json = read_cmd(cmd)
   if not json or json == "" then return nil end
   local text = json_get_string(json, "lyrics")
-  return normalize_lyrics_text(text)
+  text = normalize_lyrics_text(text)
+  text = strip_lyrics_ovh_header(text)
+  return text
 end
 
 local function fetch_lrclib(artist, title)
