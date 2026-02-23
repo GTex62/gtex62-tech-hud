@@ -1289,7 +1289,7 @@ function conky_draw_music_widget()
         lines = wrap_lines_for_width(cr, theme, lines, lfont, lsize, wrap_w)
       end
       if #lines > max_lines then
-        lines = { unpack(lines, 1, max_lines) }
+        lines = { (table.unpack or unpack)(lines, 1, max_lines) }
         lines[max_lines] = lyrics_cfg.more_marker or "...more..."
       end
       cairo_save(cr)
