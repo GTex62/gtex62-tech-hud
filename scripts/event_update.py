@@ -123,7 +123,7 @@ def moon_phase_events(year, tz, store):
         ("New Moon", ephem.next_new_moon),
         ("First Quarter", ephem.next_first_quarter_moon),
         ("Full Moon", ephem.next_full_moon),
-        ("Last Quarter", ephem.next_last_quarter_moon),
+        ("Third Quarter", ephem.next_last_quarter_moon),
     ]
     start = ephem.Date(f"{year}/1/1")
     end = ephem.Date(f"{year + 1}/1/1")
