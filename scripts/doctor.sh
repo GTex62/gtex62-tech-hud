@@ -30,6 +30,11 @@ THEME_SYSTEM=1
 THEME_METAR=1
 THEME_TAF=1
 THEME_ADVISORIES=0
+EMBED_ENABLED=0
+EMBED_SYSTEM=0
+EMBED_NETWORK=0
+EMBED_STATION=0
+EMBED_BARO=0
 SITREP_AP=1
 SITREP_PFSENSE=1
 
@@ -218,6 +223,11 @@ load_theme_flags() {
     print("metar=" .. get("weather.metar.enabled", true))
     print("taf=" .. get("weather.taf.enabled", true))
     print("advisories=" .. get("weather.advisories.enabled", false))
+    print("embed_enabled=" .. get("embedded_corners.enabled", true))
+    print("embed_system=" .. get("embedded_corners.system.enabled", true))
+    print("embed_network=" .. get("embedded_corners.network.enabled", true))
+    print("embed_station=" .. get("embedded_corners.station_model.enabled", true))
+    print("embed_baro=" .. get("embedded_corners.baro_gauge.enabled", true))
   ' 2>/dev/null || true)"
   while IFS='=' read -r k v; do
     case "$k" in
@@ -230,6 +240,11 @@ load_theme_flags() {
       metar) THEME_METAR="$v" ;;
       taf) THEME_TAF="$v" ;;
       advisories) THEME_ADVISORIES="$v" ;;
+      embed_enabled) EMBED_ENABLED="$v" ;;
+      embed_system) EMBED_SYSTEM="$v" ;;
+      embed_network) EMBED_NETWORK="$v" ;;
+      embed_station) EMBED_STATION="$v" ;;
+      embed_baro) EMBED_BARO="$v" ;;
     esac
   done <<< "$out"
 }
@@ -294,6 +309,12 @@ widget_loaded "$SUITE_DIR/widgets/station-model.conky.conf" && loaded_station=1
 widget_loaded "$SUITE_DIR/widgets/baro-gauge.conky.conf" && loaded_baro=1
 widget_loaded "$SUITE_DIR/widgets/network.conky.conf" && loaded_network=1
 widget_loaded "$SUITE_DIR/widgets/system.conky.conf" && loaded_system=1
+if [[ "$loaded_time" -eq 1 && "$EMBED_ENABLED" -eq 1 ]]; then
+  [[ "$EMBED_STATION" -eq 1 ]] && loaded_station=1
+  [[ "$EMBED_BARO" -eq 1 ]] && loaded_baro=1
+  [[ "$EMBED_NETWORK" -eq 1 ]] && loaded_network=1
+  [[ "$EMBED_SYSTEM" -eq 1 ]] && loaded_system=1
+fi
 
 section "Basic"
 if [[ -d "$SUITE_DIR" ]]; then
@@ -494,17 +515,27 @@ fi
 if [[ "$THEME_METAR" -eq 1 && "$loaded_time" -eq 1 ]]; then
   metar_required=1
 fi
+metar_action="run scripts/metar_ob.sh"
+if [[ "$THEME_METAR" -eq 0 && "$loaded_station" -eq 0 && "$loaded_baro" -eq 1 ]]; then
+  metar_action="set weather.metar.enabled=true in theme.lua or load widgets/station-model.conky.conf; baro gauge needs METAR cache"
+elif [[ "$THEME_METAR" -eq 0 && "$loaded_station" -eq 0 ]]; then
+  metar_action="set weather.metar.enabled=true in theme.lua or load widgets/station-model.conky.conf"
+fi
 
 if [[ "$metar_required" -eq 1 ]]; then
   if (( ${#metar_files[@]} > 0 )); then
-    say "OK" "METAR cache present"
-  else
-    metar_action="run scripts/metar_ob.sh"
-    if [[ "$THEME_METAR" -eq 0 && "$loaded_station" -eq 0 && "$loaded_baro" -eq 1 ]]; then
-      metar_action="set weather.metar.enabled=true in theme.lua or load widgets/station-model.conky.conf; baro gauge needs METAR cache"
-    elif [[ "$THEME_METAR" -eq 0 && "$loaded_station" -eq 0 ]]; then
-      metar_action="set weather.metar.enabled=true in theme.lua or load widgets/station-model.conky.conf"
+    metar_empty=()
+    for f in "${metar_files[@]}"; do
+      [[ -s "$f" ]] || metar_empty+=("$(basename "$f")")
+    done
+    if (( ${#metar_empty[@]} == ${#metar_files[@]} )); then
+      say "WARN" "METAR cache empty (all files) ($metar_action)"
+    elif (( ${#metar_empty[@]} > 0 )); then
+      say "WARN" "METAR cache has empty files (some): ${metar_empty[*]} ($metar_action)"
+    else
+      say "OK" "METAR cache present"
     fi
+  else
     say "WARN" "METAR cache missing ($metar_action)"
   fi
 else
