@@ -184,8 +184,15 @@ local function draw_calendar_ring_impl()
   local year_days = days_in_year(year)
   local today_doy = math.floor((now - year_start) / 86400) + 1
   local rot_year = -((today_doy - 1) / year_days) * 2 * math.pi
+  local month_start_doy = day_of_year_for_date(string.format("%04d-%02d-01", year, now_t.month), year)
+  local ideal_month_start = (now_t.month - 1) / 12
+  local month_offset = 0
+  if month_start_doy then
+    month_offset = (((month_start_doy - 1) / year_days) - ideal_month_start) * 2 * math.pi
+  end
+  local rot_months = rot_year + month_offset
   local days = (type(c.days) == "table") and c.days or {}
-  local rot_days = rot_year
+  local rot_days = rot_months
   if days.rotate == false then
     rot_days = -math.pi / 12 -- half-segment CCW offset
   end
@@ -207,7 +214,7 @@ local function draw_calendar_ring_impl()
   if not winter_doy then winter_doy = day_of_year_for_date(string.format("%d-12-21", year), year) end
 
   local function day_angle(doy)
-    return ((doy - 1) / year_days) * 2 * math.pi - math.pi / 2 + rot_year
+    return ((doy - 1) / year_days) * 2 * math.pi - math.pi / 2 + rot_months
   end
 
   local function draw_arc_segment(a_start, a_end, r)
@@ -446,8 +453,8 @@ local function draw_calendar_ring_impl()
     cairo_set_line_width(cr, m_stroke)
     local m_gap_ang = (m_r > 0) and (m_gap / m_r) or 0
     for i = 0, 11 do
-      local a_start = (i / 12) * 2 * math.pi - math.pi / 2 + rot_year + (m_gap_ang / 2)
-      local a_end = ((i + 1) / 12) * 2 * math.pi - math.pi / 2 + rot_year - (m_gap_ang / 2)
+      local a_start = (i / 12) * 2 * math.pi - math.pi / 2 + rot_months + (m_gap_ang / 2)
+      local a_end = ((i + 1) / 12) * 2 * math.pi - math.pi / 2 + rot_months - (m_gap_ang / 2)
       if a_end ~= a_start then
         draw_arc_segment(a_start, a_end, m_r)
       end
@@ -458,7 +465,7 @@ local function draw_calendar_ring_impl()
       "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER",
     }
     for i = 0, 11 do
-      local a_mid = ((i + 0.5) / 12) * 2 * math.pi - math.pi / 2 + rot_year
+      local a_mid = ((i + 0.5) / 12) * 2 * math.pi - math.pi / 2 + rot_months
       local txt = month_labels[i + 1]
       local col = m_text_col
       local alpha = m_text_alpha

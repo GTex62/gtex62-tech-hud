@@ -53,7 +53,7 @@ local t = {
       network = { x = 1542, y = 288 },
       baro_gauge = { x = 1542, y = 865 },
       notes = { anchor = "clock_center", anchor_point = "top_right", anchor_scale = false, x = -1110, y = -700 },
-      doctor = { x = 260, y = 420 },
+      doctor = { x = 2080, y = 720 },
       music = { anchor = "clock_center", anchor_point = "top_left", anchor_scale = false, x = 40, y = -700 },
       font_probe = { x = 30, y = 30 },
     },
@@ -470,7 +470,7 @@ local t = {
       bullet_gap      = 12,                    -- bullet gap from text edge
       bullet_color    = palette.accent.maroon, -- bullet color (palette accent maroon)
       bullet_alpha    = 0.90,                  -- bullet alpha
-      window_days     = 7,                     -- show events within +/-N days
+      window_days     = 10,                    -- show events within +/-N days
       switch_hour     = 12,                    -- hour-of-day to switch to left side
       max_lines_left  = 0,                     -- 0 = no limit
       max_lines_right = 0,                     -- 0 = no limit

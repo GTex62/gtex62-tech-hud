@@ -501,9 +501,11 @@ Automatic updates: `scripts/run-time.sh` runs the generator once each time the s
   - Month ring settings are under `calendar.months`.
   - `calendar.months.current_text_color` and `calendar.months.current_text_alpha` control the current month highlight.
   - Use `calendar.months.r_offset` to nudge the month ring radius.
+  - Month ring alignment rephases at each month start so the gap center sits at the apex (daily rotation preserved).
   - Days ring settings are under `calendar.days` (`ring_*` for 12-segment ring, `tick_*` for 360 ticks).
+  - When `calendar.days.rotate=true`, the days ring follows the same month-start alignment as the months ring.
   - Date strip settings are under `calendar.date_strip` (month/day/year boxes above the days ring, plus optional weekday box).
-  - Seasons/months/days rotate together so the current day is at 12 o'clock.
+  - Seasons and DST rings follow the same month-start alignment as the months ring.
   - Season boundaries use `$CONKY_CACHE_DIR/seasonal.vars` when available; otherwise defaults are used.
   - Seasonal dates cache lives at `$CONKY_CACHE_DIR/seasonal.vars` and is written by `scripts/seasonal_update.py` (see `config/owm.vars` for `SEASONAL_CACHE`/`SEASONAL_TTL`).
   - DST ring reads `DST_START_DATE`/`DST_END_DATE` from the seasonal cache when present; if missing, it checks `config/owm.vars` for those keys, then falls back to local DST transitions.
