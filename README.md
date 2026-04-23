@@ -303,6 +303,7 @@ Automatic updates: `scripts/run-time.sh` runs the generator once each time the s
   - AP polling honors `AP_IPS` and `AP_LABELS` environment overrides (see `ap_status_all_clients.sh`).
   - AP client names and unknown IPs come from `config/ap_ipmap.csv` via `ap_clients_named.sh`. Unknown value/IP colors can be set under `theme-sitrep.lua` → `ap.unk_value_*` and `ap.unk_ip_*`.
   - AP data is cached and refreshed in the background to avoid blocking first render.
+  - If one AP is unreachable, the SITREP AP block now keeps showing the other APs and marks only the failed AP as `DOWN`; the shared SSH gate is reserved for auth/host-key failures instead of plain timeouts.
   - Set `sitrep.ap.enabled=false` to hide the AP block and stop AP SSH polling.
   - Set `sitrep.pfsense.enabled=false` to hide the pfSense block and stop pfSense SSH polling.
   - pfSense summary line uses cached values from `scripts/pf-fetch-basic.sh full` when available, otherwise falls back to `theme-sitrep.lua` → `sitrep.pfsense`.

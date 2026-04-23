@@ -4,6 +4,12 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck disable=SC1090
 source "$SCRIPT_DIR/conky-env.sh"
+GATE="$SCRIPT_DIR/pf-ssh-gate.sh"
+
+if ! "$GATE" allow; then
+  printf 'SSH PAUSED - AP\n'
+  exit 0
+fi
 
 SUITE="$CONKY_SUITE_DIR"
 CMD="$CONKY_SUITE_DIR/scripts/zyxel_cmd.sh"
